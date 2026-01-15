@@ -1,0 +1,48 @@
+{
+  "groups": {
+    "gp_1_per_2lb": 50,
+    "gp_1_per_1lb": 100,
+    "gp_2_per_1lb": 200,
+    "gp_3_per_1lb": 300,
+    "gp_8_per_1lb": 800,
+    "gp_7_per_1lb": 700,
+    "gp_9_per_1lb": 900,
+    "gp_5_per_1lb": 500
+  },
+  "species": {
+    "Meat": {
+      "Antelope":       "gp_1_per_2lb",
+      "Deer":           "gp_1_per_1lb",
+      "Elk":            "gp_2_per_1lb",
+      "Boar":           "gp_1_per_2lb",
+      "Bear":           "gp_3_per_1lb",
+      "Mountain Lion":  "gp_2_per_1lb",
+      "Squirrel":       "gp_2_per_1lb",
+      "Rabbit":         "gp_2_per_1lb",
+      "Turkey":         "gp_1_per_1lb",
+      "Waterfowl":      "gp_1_per_1lb",
+      "Pheasant":       "gp_1_per_1lb"
+    },
+    "Forage": {
+      "Mushrooms":     "gp_1_per_2lb",
+      "Berries":       "gp_1_per_1lb",
+      "Nuts":          "gp_1_per_1lb",
+      "Wild Fruit":    "gp_2_per_1lb",
+      "Wild Veggies":  "gp_2_per_1lb"
+    },
+    "Fish": {
+      "Catfish":  "gp_1_per_2lb",
+      "Bass":     "gp_1_per_1lb",
+      "Carp":     "gp_1_per_1lb",
+      "Salmon":   "gp_1_per_1lb",
+      "Sturgeon": "gp_2_per_1lb"
+    },
+    "Marine": {
+      "Crab":       "gp_5_per_1lb",
+      "Snapper":    "gp_8_per_1lb",
+      "Cod":        "gp_7_per_1lb",
+      "Yellowtail": "gp_9_per_1lb",
+      "Barracuda":  "gp_2_per_1lb"
+    }
+  }
+}
