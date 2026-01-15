@@ -4,10 +4,10 @@
     "gp_1_per_1lb": 100,
     "gp_2_per_1lb": 200,
     "gp_3_per_1lb": 300,
+    "gp_5_per_1lb": 500,
     "gp_8_per_1lb": 800,
     "gp_7_per_1lb": 700,
-    "gp_9_per_1lb": 900,
-    "gp_5_per_1lb": 500
+    "gp_9_per_1lb": 900
   },
   "species": {
     "Meat": {
@@ -19,9 +19,14 @@
       "Mountain Lion":  "gp_2_per_1lb",
       "Squirrel":       "gp_2_per_1lb",
       "Rabbit":         "gp_2_per_1lb",
-      "Turkey":         "gp_1_per_1lb",
-      "Waterfowl":      "gp_1_per_1lb",
-      "Pheasant":       "gp_1_per_1lb"
+      "Turkey":         "gp_2_per_1lb",
+      "Waterfowl":      "gp_2_per_1lb",
+      "Pheasant":       "gp_2_per_1lb",
+      "Crab":           "gp_5_per_1lb",
+      "Snapper":        "gp_8_per_1lb",
+      "Cod":            "gp_7_per_1lb",
+      "Yellowtail":     "gp_9_per_1lb",
+      "Barracuda":      "gp_2_per_1lb"
     },
     "Forage": {
       "Mushrooms":     "gp_1_per_2lb",
@@ -31,11 +36,11 @@
       "Wild Veggies":  "gp_2_per_1lb"
     },
     "Fish": {
-      "Catfish":  "gp_1_per_2lb",
-      "Bass":     "gp_1_per_1lb",
-      "Carp":     "gp_1_per_1lb",
-      "Salmon":   "gp_1_per_1lb",
-      "Sturgeon": "gp_2_per_1lb"
+      "Catfish":    "gp_1_per_2lb",
+      "Bass":       "gp_1_per_1lb",
+      "Carp":       "gp_1_per_1lb",
+      "Salmon":     "gp_1_per_1lb",
+      "Sturgeon":   "gp_2_per_1lb"
     },
     "Marine": {
       "Crab":       "gp_5_per_1lb",

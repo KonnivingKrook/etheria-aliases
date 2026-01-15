@@ -24,24 +24,40 @@ def find_node(ns, key):
             return n
     return None
 
-chosen = find_node(nodes, want) if want else None
-fallback = False
-if want and not chosen:
-    fallback = True
-chosen = chosen or pick_weighted(nodes)
+node = find_node(nodes, want) if want else None
+fallback = bool(want and not node)
+targeted = bool(want and node)  # only true if they asked for a valid specific node
+node = node or pick_weighted(nodes)
 
 check = vroll(ch.skills.athletics.d20())
-dc = vroll(chosen.get("dc") or "10")
+
+# DC: apply rarity-based penalty only when targeted
+base_dc_expr = node.get("dc") or "10"
+rarity = int(node.get("rarity", 10))
+penalty = (10 - rarity) * 2 if targeted else 0
+
+dc_expr = f"({base_dc_expr})+{penalty}" if penalty else base_dc_expr
+dc = vroll(dc_expr)
+
 passed = check.total >= dc.total
 
-desc = chosen.get("found") or ""
+reward_roll = None
+if passed:
+    reward_roll = vroll(node.get("reward") or "0")
+
+name = node.get("name") or node.get("id") or "Unknown"
+
+desc = node.get("found") or ""
 if fallback:
     desc = f"_Couldn't find `{want}`. Mining a random node instead._\n\n" + desc
 
-desc += f"\n\n**Athletics:** {check.total} vs **DC:** {dc.total}\n\n"
-desc += (chosen.get("pass") if passed else chosen.get("fail")) or ""
+desc += f"\n\n**Node:** {name}\n**Athletics:** {check.total} vs **DC:** {dc.total}"
+if penalty:
+    desc += f" _(targeted penalty +{penalty})_"
+desc += "\n\n" + ((node.get("pass") if passed else node.get("fail")) or "")
 </drac2>
 -title "Mining"
 -desc "{{desc}}"
 -f "Athletics Roll|{{check}}"
 -f "DC Roll|{{dc}}"
+-f "Reward|{{reward_roll if reward_roll else '0'}}"

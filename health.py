@@ -1,103 +1,142 @@
 embed
 <drac2>
+# !health
+# Initiative HP summary for party and monsters.
+
 args = [a.lower() for a in &ARGS&]
 cb = combat()
+ch = character()
 
-party = ""
-mon = ""
-mode = "player"
-details = ("details" in args) or ("det" in args) or ("d" in args)
+FOOTER = "!health ? | @konnivingkrook#0"
+thumb = f' -thumb "{ch.image}"' if ch.image else ''
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def q(s):
+    return (s or "").replace("\"", "'")
+
+def build(title, desc_lines=None, fields=None):
+    desc = "\n".join(desc_lines or [])
+    out = [
+        f'-title "{q(title)}"',
+        f'-desc "{q(desc)}"',
+        f'-footer "{FOOTER}"',
+    ]
+    if thumb:
+        out.append(thumb)
+    for n, v in (fields or []):
+        if v:
+            out.append(f'-f "{q(n)}|{q(v)}"')
+    return " ".join(out)
+
+# ---------------------------------------------------------------------------
+# Parse args
+# ---------------------------------------------------------------------------
+
 show_help = ("help" in args) or ("?" in args)
+details = ("details" in args) or ("det" in args) or ("d" in args)
 
-title = "Initiative Health Summary"
-description = "Let's see how we're doing!"
-
-
+mode = "party"  # party|monsters|all
 if ("all" in args) or ("a" in args):
-    mode = "showAll"
+    mode = "all"
 elif ("m" in args) or ("mon" in args) or ("monster" in args):
-    mode = "monster"
+    mode = "monsters"
 
-# Help mode
+# ---------------------------------------------------------------------------
+# Help
+# ---------------------------------------------------------------------------
+
 if show_help:
-    title = "Health Alias Help"
-    description = (
-        "**Usage**\n"
-        "`!health` ... party health\n"
-        "`!health m` ... monster health\n"
-        "`!health all` ... both\n"
-        "`!health d` ... show effects and resists (party only)\n"
-        "`!health all d` ... both with details (party only)\n"
+    return build(
+        "Health Help",
+        [
+            "**Usage**",
+            "- `!health`",
+            "- `!health m`",
+            "- `!health all`",
+            "- `!health d`",
+            "",
+            "**What it does**",
+            "- Shows current HP for combatants in initiative.",
+            "- `d` adds effects and resistances for party only.",
+            "",
+            "**Notes**",
+            "- Requires an active initiative.",
+        ],
     )
 
-# No initiative mode (story)
-elif cb is None:
-    title = "No Initiative"
-    description = (
-        "You start to take stock of bruises and breathing...\n"
-        "But there is no turn order to anchor it. No initiative to read.\n"
-        "For now, the moment is yours.\n\n"
-        "Start initiative, then try `!health` again."
+# ---------------------------------------------------------------------------
+# No initiative
+# ---------------------------------------------------------------------------
+
+if cb is None:
+    return build(
+        "No Initiative",
+        [
+            "You take stock of bruises and breathing...",
+            "But there is no turn order to anchor it.",
+            "",
+            "Start initiative, then try `!health` again.",
+        ],
     )
 
-# Normal mode
-else:
-    def fmt_resistance_list(res_list):
-        if not res_list:
-            return ""
-        out = ""
-        first = True
-        for r in res_list:
-            if not first:
-                out += ", "
-            out += r.dtype
-            first = False
-        return out
+# ---------------------------------------------------------------------------
+# Formatting
+# ---------------------------------------------------------------------------
 
-    def fmt_effect_list(eff_list):
-        if not eff_list:
-            return ""
-        out = ""
-        first = True
-        for e in eff_list:
-            if not first:
-                out += ", "
-            out += e.name
-            first = False
-        return out
+def join_dtypes(res_list):
+    return ", ".join([r.dtype for r in (res_list or [])])
 
-    def detailed_block(c):
-        immune = fmt_resistance_list(c.resistances.immune)
-        resist = fmt_resistance_list(c.resistances.resist)
-        effect = fmt_effect_list(c.effects)
+def join_effects(eff_list):
+    return ", ".join([e.name for e in (eff_list or [])])
 
-        out = f"**{c.name}**:\n"
-        out += f"> {c.hp_str()}\n"
-        if effect:
-            out += f"> Effects: {effect}\n"
-        if immune:
-            out += f"> Immunities: {immune}\n"
-        if resist:
-            out += f"> Resistances: {resist}\n"
-        return out
+def party_block(c):
+    if not details:
+        return f"**{c.name}**: {c.hp_str()}"
 
-    def simple_block(c):
-        return f"**{c.name}**: {c.hp_str()}\n"
+    lines = [f"**{c.name}**:", f"> {c.hp_str()}"]
 
-    for c in cb.combatants:
-        if c.hp is None:
-            continue
+    eff = join_effects(c.effects)
+    imm = join_dtypes(c.resistances.immune)
+    res = join_dtypes(c.resistances.resist)
 
-        pBlock = detailed_block(c) if details else simple_block(c)
-        mBlock = simple_block(c)  # Monsters should never have details
+    if eff:
+        lines.append(f"> Effects: {eff}")
+    if imm:
+        lines.append(f"> Immunities: {imm}")
+    if res:
+        lines.append(f"> Resistances: {res}")
 
-        if c.monster_name is None:
-            party += pBlock
-        else:
-            mon += mBlock
+    return "\n".join(lines)
+
+def monster_block(c):
+    return f"**{c.name}**: {c.hp_str()}"
+
+party_lines = []
+monster_lines = []
+
+for c in cb.combatants:
+    if c.hp is None:
+        continue
+    if c.monster_name is None:
+        party_lines.append(party_block(c))
+    else:
+        monster_lines.append(monster_block(c))
+
+party_text = "\n".join(party_lines)
+monster_text = "\n".join(monster_lines)
+
+fields = []
+if mode in ["party", "all"]:
+    fields.append(("Party", party_text or "None"))
+if mode in ["monsters", "all"]:
+    fields.append(("Monsters", monster_text or "None"))
+
+return build(
+    "Initiative Health Summary",
+    ["Let's see how we're doing!"],
+    fields,
+)
 </drac2>
--title "{{title}}"
--desc "{{description}}"
-{{ ('-f "Party|' + party + '"') if (cb is not None) and (not show_help) and mode in ["player","showAll"] and party else '' }}
-{{ ('-f "Monsters|' + mon + '"') if (cb is not None) and (not show_help) and mode in ["monster","showAll"] and mon else '' }}
--footer "!health ? | @konnivingkrook#0"

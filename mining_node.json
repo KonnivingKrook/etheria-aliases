@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "description": "Mining node table. Weighted random selection uses the 'rarity' field as a weight (higher = more common).",
+  "nodes": [
+    {
+      "id": "lead",
+      "name": "Lead",
+      "reward": "1d10+5",
+      "dc": "1d8ro<6+2",
+      "check_type": "ATHLETICS",
+      "found": "You come across a vein of Lead!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 2
+    },
+    {
+      "id": "coal",
+      "name": "Coal",
+      "reward": "1d10+5",
+      "dc": "1d8ro<6+2",
+      "check_type": "ATHLETICS",
+      "found": "You come across a vein of Coal!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 9
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "reward": "1d10+5",
+      "dc": "1d8ro<6+2",
+      "check_type": "ATHLETICS",
+      "found": "And you come across a vein of Copper!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 7
+    },
+    {
+      "id": "tin",
+      "name": "Tin",
+      "reward": "1d10+5",
+      "dc": "1d8ro<6+2",
+      "check_type": "ATHLETICS",
+      "found": "You come across a vein of Tin!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 4
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "reward": "1d12+8",
+      "dc": "1d8ro<6+2",
+      "check_type": "ATHLETICS",
+      "found": "You come across a node of Iron!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 6
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "reward": "1d20+10",
+      "dc": "1d8ro<6+4",
+      "check_type": "ATHLETICS",
+      "found": "You come across a vein of Silver!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!",
+      "rarity": 4
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "reward": "1d50+20",
+      "dc": "1d10ro<8+2",
+      "check_type": "ATHLETICS",
+      "found": "You come across a node of Gold!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the gold is buried too deep into the rocks to reach it!",
+      "rarity": 3
+    },
+    {
+      "id": "platinum",
+      "name": "Platinum",
+      "reward": "1d100+20",
+      "dc": "1d12ro<9+4",
+      "check_type": "ATHLETICS",
+      "found": "You come across a node of Platinum!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Platinum is buried too deep into the rocks to reach it!",
+      "rarity": 2
+    },
+    {
+      "id": "mithril",
+      "name": "Mithril",
+      "reward": "1d50+20",
+      "dc": "1d20ro<10+3",
+      "check_type": "ATHLETICS",
+      "found": "You come across a node of Mithril!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Mithril is buried too deep into the rocks to reach it!",
+      "rarity": 2
+    },
+    {
+      "id": "adamantine",
+      "name": "Adamantine",
+      "reward": "1d50+10",
+      "dc": "1d20ro<10+6",
+      "check_type": "ATHLETICS",
+      "found": "You come across a node of the rare and valuable Adamantine!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Adamantine is buried too deep into the rocks to reach it!",
+      "rarity": 2
+    }
+  ]
+}
