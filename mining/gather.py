@@ -110,11 +110,25 @@ points = 0
 point_str = ""
 ath_check = ""  # only filled if we actually mine
 
-# Mason's Tools proficiency (best effort)
+# Mason's Tools proficiency
 tool_prof = False
-prof_text = ""
+tool_expert = False
 
 # TODO: Add tool proficiency
+
+ch = character()
+
+expert_text = ch.get_cvar("eTools") or ""
+prof_text   = ch.get_cvar("pTools") or ""
+
+tool_expert = False
+tool_prof   = False
+
+for a in acceptable_tools:
+    if a in prof_text:
+        tool_prof = True
+    if a in expert_text:
+        tool_expert = True
 
 desc_lines = []
 
@@ -194,6 +208,7 @@ desc_lines.append((node.get("pass") if extracted else node.get("fail")) or "")
 
 fields = [
     ("Nature", str(nat_check)),
+    ("Tools", str(tool_prof)),
     ("Athletics", str(ath_check)),
     ("Resources", f"{points}\n{point_str}" if extracted else "0\nNo resources gained.")
 ]
