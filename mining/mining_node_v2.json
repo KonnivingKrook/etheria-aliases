@@ -1,0 +1,131 @@
+{
+  "version": 4,
+  "description": "Tmine mining nodes. Flat DC by tier. Random selection uses rarity weight (higher = more common).",
+  "tiers": {
+    "crude": { "dc": 11 },
+    "good": { "dc": 16 },
+    "exel": { "dc": 21 },
+    "rare": { "dc": 26 }
+  },
+  "tier_aliases": {
+    "crude": "crude",
+    "good": "good",
+    "exel": "exel",
+    "excellent": "exel",
+    "excel": "exel",
+    "rare": "rare",
+    "legendary": "rare",
+    "mythic": "rare"
+  },
+  "nodes": [
+    {
+      "id": "coal",
+      "name": "Coal",
+      "tier": "crude",
+      "rarity": 30,
+      "found": "You come across a vein of Coal!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "tier": "crude",
+      "rarity": 24,
+      "found": "You come across a node of Iron!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "tier": "crude",
+      "rarity": 20,
+      "found": "And you come across a vein of Copper!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "tin",
+      "name": "Tin",
+      "tier": "crude",
+      "rarity": 16,
+      "found": "You come across a vein of Tin!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "lead",
+      "name": "Lead",
+      "tier": "crude",
+      "rarity": 12,
+      "found": "You come across a vein of Lead!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "tier": "good",
+      "rarity": 6,
+      "found": "You come across a vein of Silver!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "tier": "good",
+      "rarity": 3,
+      "found": "You come across a node of Gold!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the gold is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "platinum",
+      "name": "Platinum",
+      "tier": "exel",
+      "rarity": 1,
+      "found": "You come across a node of Platinum!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Platinum is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "mithril",
+      "name": "Mithril",
+      "tier": "good",
+      "rarity": 1,
+      "found": "You come across a node of Mithril!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Mithril is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "adamantine",
+      "name": "Adamantine",
+      "tier": "rare",
+      "rarity": 1,
+      "found": "You come across a node of the rare and valuable Adamantine!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Adamantine is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "electrum",
+      "name": "Electrum",
+      "tier": "rare",
+      "rarity": 1,
+      "found": "You come across a strange pale-gold vein... Electrum!",
+      "pass": "With careful effort, you extract the electrum without ruining the vein.",
+      "fail": "The vein flakes apart and crumbles before you can recover anything usable."
+    }
+  ],
+  "target_dc_penalty": {
+    "enabled": true,
+    "notes": "Applied when user targets a specific ore id (e.g., !tmine coal). Penalty is added to tier DC.",
+    "by_tier": {
+      "crude": 2,
+      "good": 4,
+      "exel": 6,
+      "rare": 8
+    }
+  }
+}

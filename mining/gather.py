@@ -2,62 +2,201 @@ embed
 <drac2>
 ch = character()
 data = load_json(get_gvar("0bdc0d76-6bd1-42cb-92d4-274635c6a6bd"))
+
+FOOTER = "!tmine help, list | @konnivingkrook#0"
+thumb = f' -thumb "{ch.image}"' if ch.image else ""
+
 nodes = data.get("nodes", [])
+tiers = data.get("tiers", {})
+tier_aliases = data.get("tier_aliases", {})
 
 args = [a.lower() for a in &ARGS&]
-want = args[0] if args else ""
+cmd = args[0] if args else ""
 
-def pick_weighted(ns):
-    total = sum(int(n.get("rarity", 1)) for n in ns)
-    r = randint(1, total)
-    run = 0
-    for n in ns:
-        run += int(n.get("rarity", 1))
-        if r <= run:
-            return n
-    return ns[-1]
+use_adv = "adv" in args
+use_dis = "dis" in args
+use_guidance = ("guidance" in args) or ("g" in args)
+found_node = False
+acceptable_tools = ["Mason's Tools"]
 
-def find_node(ns, key):
-    key = (key or "").lower()
-    for n in ns:
-        if (n.get("id","") or "").lower() == key:
-            return n
-    return None
 
-node = find_node(nodes, want) if want else None
-fallback = bool(want and not node)
-targeted = bool(want and node)  # only true if they asked for a valid specific node
-node = node or pick_weighted(nodes)
+def quote(s):
+    return (s or "").replace("\"", "'")
 
-check = vroll(ch.skills.athletics.d20())
+def build(title, desc_lines=None, fields=None):
+    desc = "\n".join(desc_lines or [])
+    out = [
+        f'-title "{quote(title)}"',
+        f'-desc "{quote(desc)}"',
+        f'-footer "{FOOTER}"',
+    ]
+    if thumb:
+        out.append(thumb)
+    for n, v in (fields or []):
+        if v:
+            out.append(f'-f "{quote(n)}|{quote(v)}"')
+    return " ".join(out)
 
-# DC: apply rarity-based penalty only when targeted
-base_dc_expr = node.get("dc") or "10"
-rarity = int(node.get("rarity", 10))
-penalty = (10 - rarity) * 2 if targeted else 0
+# ---- help / list ----
+if cmd in ["help", "list", "?"]:
+    tier_names = ", ".join(tiers.keys()) if tiers else "none"
 
-dc_expr = f"({base_dc_expr})+{penalty}" if penalty else base_dc_expr
-dc = vroll(dc_expr)
+    by_tier = {}
+    for n in nodes:
+        t = (n.get("tier") or "unknown").lower()
+        by_tier.setdefault(t, []).append(n.get("id") or "unknown")
 
-passed = check.total >= dc.total
+    lines = []
+    lines.append("**Tmine**")
+    lines.append("Mine a random node (weighted by rarity), optionally filtering by tier.")
+    lines.append("")
+    lines.append("**Usage**")
+    lines.append("- `!tmine`")
+    lines.append(f"- `!tmine <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- Optional: add `adv` or `dis`")
+    lines.append("- Optional: add `guidance`")
+    lines.append("")
+    lines.append("**Tiers**")
 
-reward_roll = None
-if passed:
-    reward_roll = vroll(node.get("reward") or "0")
+    tier_list = list(by_tier.keys())
+    tier_list.sort()
 
-name = node.get("name") or node.get("id") or "Unknown"
+    for t in tier_list:
+        id_list = list(by_tier[t])
+        id_list.sort()
+        ids = ", ".join(id_list)
+        dc_val = tiers.get(t, {}).get("dc", "?")
+        lines.append(f"- **{t}** (DC {dc_val}): {ids}")
 
-desc = node.get("found") or ""
-if fallback:
-    desc = f"_Couldn't find `{want}`. Mining a random node instead._\n\n" + desc
+    title = "Tmine Help" if cmd != "list" else "Tmine List"
+    return build(title, lines, [])
 
-desc += f"\n\n**Node:** {name}\n**Athletics:** {check.total} vs **DC:** {dc.total}"
-if penalty:
-    desc += f" _(targeted penalty +{penalty})_"
-desc += "\n\n" + ((node.get("pass") if passed else node.get("fail")) or "")
+# ---- tier or all ----
+tier = tier_aliases.get(cmd, cmd)
+mode = "tier" if tier in tiers else "all"
+
+pool = nodes if mode == "all" else [n for n in nodes if (n.get("tier") or "").lower() == tier]
+if not pool:
+    mode = "all"
+    pool = nodes
+
+weights = [int(n.get("rarity", 1)) for n in pool]
+node = randchoices(pool, weights=weights)[0]
+
+# Flat DC from tier table
+node_tier = (node.get("tier") or "crude").lower()
+dc_val = int(tiers.get(node_tier, {}).get("dc"))
+dc = vroll(str(dc_val))
+
+# Roll Nature first (find the node)
+nat = ch.skills.nature
+nat_expr = ""
+
+if use_adv and not use_dis:
+    nat_expr = nat.d20(base_adv=True)
+elif use_dis and not use_adv:
+    nat_expr = nat.d20(base_adv=False)
+else:
+    nat_expr = nat.d20()
+
+nat_expr += ("+1d4[guidance]" if use_guidance else "")
+nat_check = vroll(nat_expr)
+
+
+found_node = nat_check.total >= dc.total
+
+# Prepare outputs
+points = 0
+point_str = ""
+ath_check = ""  # only filled if we actually mine
+
+# Mason's Tools proficiency (best effort)
+tool_prof = False
+prof_text = ""
+
+# TODO: Add tool proficiency
+
+desc_lines = []
+
+if not found_node:
+    desc_lines.append("You search the rock face for anything worth working...")
+    desc_lines.append("")
+    desc_lines.append(f"**Tier:** {node_tier} (DC {dc_val})")
+    desc_lines.append("You can’t find a workable node here.")
+    fields = [
+        ("Nature", str(nat_check)),
+        ("DC", str(dc.total)),
+        ("Resources", "0\nNo resources gained.")
+    ]
+    return build("Mining", desc_lines, fields)
+
+# If we found a node, now roll Athletics (extract)
+ath = ch.skills.athletics
+ath_expr = ""
+
+if use_adv and not use_dis:
+    ath_expr = ath.d20(base_adv=True)
+elif use_dis and not use_adv:
+    ath_expr = ath.d20(base_adv=False)
+else:
+    ath_expr = ath.d20()
+
+ath_expr += ("+1d4[guidance]" if use_guidance else "")
+ath_check = vroll(ath_expr)
+
+
+extracted = ath_check.total >= dc.total
+
+# Athletics proficiency/expertise (best effort)
+ath_prof = False
+ath_exp = False
+try:
+    ath_prof = bool(ath.prof)
+except "NotDefined":
+    ath_prof = False
+
+if not ath_prof:
+    try:
+        ath_prof = bool(ath.proficient)
+    except "NotDefined":
+        ath_prof = False
+
+try:
+    ath_exp = bool(ath.expert)
+except "NotDefined":
+    ath_exp = False
+
+if not ath_exp:
+    try:
+        ath_exp = bool(ath.expertise)
+    except "NotDefined":
+        ath_exp = False
+
+if extracted:
+    points = 1
+    point_str = "1 for Pickaxe"
+    if use_adv and not use_dis:
+        points += 1
+        point_str += "\n+1 for Advantage"
+    if ath_prof or tool_prof:
+        points += 1
+        point_str += "\n+1 for Proficiency"
+    if ath_exp:
+        points += 1
+        point_str += "\n+1 for Expertise"
+else:
+    point_str = "No resources gained."
+
+desc_lines.append(node.get("found") or "")
+desc_lines.append("")
+desc_lines.append(f"**Tier:** {node_tier} (DC {dc_val})")
+desc_lines.append((node.get("pass") if extracted else node.get("fail")) or "")
+
+fields = [
+    ("Nature", str(nat_check)),
+    ("Athletics", str(ath_check)),
+    ("Resources", f"{points}\n{point_str}" if extracted else "0\nNo resources gained.")
+]
+
+return build("Mining (Preview)", desc_lines, fields)
 </drac2>
--title "Mining (Preview)"
--desc "{{desc}}"
--f "Athletics Roll|{{check}}"
--f "DC Roll|{{dc}}"
--f "Reward|{{reward_roll if reward_roll else '0'}}"
