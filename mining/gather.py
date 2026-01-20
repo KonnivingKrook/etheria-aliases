@@ -109,13 +109,6 @@ found_node = nat_check.total >= dc.total
 points = 0
 point_str = ""
 ath_check = ""  # only filled if we actually mine
-
-# Mason's Tools proficiency (best effort)
-tool_prof = False
-prof_text = ""
-
-# TODO: Add tool proficiency
-
 desc_lines = []
 
 if not found_node:
@@ -147,6 +140,21 @@ ath_check = vroll(ath_expr)
 
 extracted = ath_check.total >= dc.total
 
+# Mason's Tools proficiency (best effort)
+tool_prof = False
+tool_exp = False
+prof_text = ""
+
+tool_exp_lst = ch.get_cvar("eTools").split(',')
+tool_prof_lst = ch.get_cvar("pTools").split(',')
+
+for t in acceptable_tools:
+    if t in tool_exp_lst:
+        tool_exp = True
+    if t in tool_prof_lst: 
+        tool_prof = True
+
+
 # Athletics proficiency/expertise (best effort)
 ath_prof = False
 ath_exp = False
@@ -172,16 +180,20 @@ if not ath_exp:
     except "NotDefined":
         ath_exp = False
 
+
+# Check for
+        
+# TODO: Check for a pickaxe in inventory? or just assume?
 if extracted:
     points = 1
     point_str = "1 for Pickaxe"
     if use_adv and not use_dis:
         points += 1
         point_str += "\n+1 for Advantage"
-    if ath_prof or tool_prof:
+    if ath_prof or tool_prof or tool_exp or ath_exp:
         points += 1
         point_str += "\n+1 for Proficiency"
-    if ath_exp:
+    if ath_exp or tool_exp:
         points += 1
         point_str += "\n+1 for Expertise"
 else:
