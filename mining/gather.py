@@ -1,9 +1,9 @@
 embed
 <drac2>
 ch = character()
-data = load_json(get_gvar("0bdc0d76-6bd1-42cb-92d4-274635c6a6bd"))
+data = load_json(get_gvar("c2535af3-0e34-44dc-9412-c1d72c9a70f6"))
 
-FOOTER = "!tmine help, list | @konnivingkrook#0"
+FOOTER = "!mining help, list | @konnivingkrook#0"
 thumb = f' -thumb "{ch.image}"' if ch.image else ""
 
 nodes = data.get("nodes", [])
@@ -47,12 +47,12 @@ if cmd in ["help", "list", "?"]:
         by_tier.setdefault(t, []).append(n.get("id") or "unknown")
 
     lines = []
-    lines.append("**Tmine**")
+    lines.append("**Mining**")
     lines.append("Mine a random node (weighted by rarity), optionally filtering by tier.")
     lines.append("")
     lines.append("**Usage**")
-    lines.append("- `!tmine`")
-    lines.append(f"- `!tmine <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!mining`")
+    lines.append(f"- `!mining <tier>` where tier is one of: `{tier_names}`")
     lines.append("- Optional: add `adv` or `dis`")
     lines.append("- Optional: add `guidance`")
     lines.append("")
@@ -68,7 +68,7 @@ if cmd in ["help", "list", "?"]:
         dc_val = tiers.get(t, {}).get("dc", "?")
         lines.append(f"- **{t}** (DC {dc_val}): {ids}")
 
-    title = "Tmine Help" if cmd != "list" else "Tmine List"
+    title = "Mining Help" if cmd != "list" else "Mining List"
     return build(title, lines, [])
 
 # ---- tier or all ----
@@ -118,8 +118,7 @@ if not found_node:
     desc_lines.append("You can’t find a workable node here.")
     fields = [
         ("Nature", str(nat_check)),
-        ("DC", str(dc.total)),
-        ("Resources", "0\nNo resources gained.")
+        ("Resources", "No resources gained.")
     ]
     return build("Mining", desc_lines, fields)
 
