@@ -9,7 +9,7 @@ using(
 cd = cdlib.Cooldowns()
 # Cooldown in seconds
 # TODO: Bump to 3000 after testing
-cooldown = 300
+cooldown = 30
 
 FOOTER = "!mining help, list | @konnivingkrook#0"
 thumb = f' -thumb "{ch.image}"' if ch.image else ""
@@ -171,6 +171,14 @@ for t in acceptable_tools:
         tool_exp = True
     if t in tool_prof_lst: 
         tool_prof = True
+
+base = character().stats
+stat_names = ["cha", "dex", "con", "int", "wis", "str"]
+
+mods = {s: base.get_mod(s) for s in stat_names}
+highest_mod = max(mods.values())
+best_stats = [s for s, m in mods.items() if m == highest_mod]
+
 
 
 # Athletics proficiency/expertise (best effort)
