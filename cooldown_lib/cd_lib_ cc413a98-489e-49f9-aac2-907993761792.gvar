@@ -1,13 +1,13 @@
 # CooldownLib
-# Cooldowns stored as expiry epoch seconds in ONE cvar dict: { "key": expiry_epoch }
+# Cooldowns stored as expiry epoch seconds in ONE cvar dict:
+# { "key": expiry_epoch }
 
-COOLDOWNLIB_VERSION = "1.0"
+COOLDOWNLIB_VERSION = "1.1"
 DEFAULT_CVAR = "cooldowns"
 
 def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
     ch = character()
 
-    # All state lives in this dict so we never need nonlocal
     cd = {
         "error": False,
         "cvar": cvar,
@@ -19,22 +19,22 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         return int(float(time()))
 
     def _load():
-        if not cd.user_mode:
-            cd.store = {}
+        if not cd["user_mode"]:
+            cd["store"] = {}
             return
 
-        raw = ch.get_cvar(cd.cvar, "{}")
+        raw = ch.get_cvar(cd["cvar"], "{}")
         try:
             data = load_yaml(raw)
-            cd.store = data if typeof(data) == "SafeDict" else {}
+            cd["store"] = data if typeof(data) == "SafeDict" else {}
         except:
-            cd.store = {}
-            cd.error = True
+            cd["store"] = {}
+            cd["error"] = True
 
     def prune(now=None):
         now = _now() if now is None else int(now)
         removed = 0
-        s = cd.store
+        s = cd["store"]
 
         for k in list(s.keys()):
             try:
@@ -48,10 +48,11 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
 
     def get_expiry(key):
         key = str(key)
-        if key not in cd.store:
+        s = cd["store"]
+        if key not in s:
             return None
         try:
-            return int(cd.store[key])
+            return int(s[key])
         except:
             return None
 
@@ -70,18 +71,20 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         key = str(key)
         seconds = max(0, int(seconds))
         exp = now + seconds
-        cd.store[key] = exp
+        cd["store"][key] = exp
         return exp
 
     def clear(key):
-        return cd.store.pop(str(key), None) is not None
+        return cd["store"].pop(str(key), None) is not None
 
     def save(error=False):
-        if (not cd.user_mode) or error or cd.error:
+        if (not cd["user_mode"]) or error or cd["error"]:
             return -1
         prune()
-        ch.set_cvar(cd.cvar, dump_json(cd.store))
+        ch.set_cvar(cd["cvar"], dump_json(cd["store"]))
         return 1
+
+    # ---- Formatting helpers ----
 
     def ts(expiry, style="R"):
         expiry = int(expiry)
@@ -98,6 +101,13 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
             return ts(expiry, "R")
         return f"on {ts(expiry, 'D')} at {ts(expiry, 'T')}"
 
+    def format_remaining(seconds, now=None):
+        now = _now() if now is None else int(now)
+        seconds = max(0, int(seconds))
+        return format_window(now + seconds, now=now)
+
+    # ---- Gates ----
+
     def gate(key, seconds, now=None, set_on_pass=True):
         now = _now() if now is None else int(now)
         key = str(key)
@@ -108,6 +118,7 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
 
         if ok and set_on_pass and int(seconds) > 0:
             exp = set_timer(key, seconds, now=now)
+            rem = 0
 
         return {
             "ok": ok,
@@ -130,7 +141,11 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
             if exp:
                 rem = max(0, int(exp) - now)
                 if rem > 0:
-                    blocked.append({"key": k, "expiry": int(exp), "remaining": rem})
+                    blocked.append({
+                        "key": k,
+                        "expiry": int(exp),
+                        "remaining": rem
+                    })
                     if next_expiry is None or int(exp) > next_expiry:
                         next_expiry = int(exp)
 
@@ -139,7 +154,7 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         if ok and set_on_pass and int(seconds) > 0:
             exp_all = now + int(seconds)
             for k in keys:
-                cd.store[k] = exp_all
+                cd["store"][k] = exp_all
 
         return {
             "ok": ok,
@@ -148,11 +163,11 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
             "now": now
         }
 
-    # init
+    # ---- Init ----
     _load()
     prune()
 
-    # return a dict that supports dot access in Drac2
+    # Return state + methods
     return cd | {
         "prune": prune,
         "get_expiry": get_expiry,
@@ -163,6 +178,7 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         "save": save,
         "ts": ts,
         "format_window": format_window,
+        "format_remaining": format_remaining,
         "gate": gate,
         "gate_any": gate_any,
     }
