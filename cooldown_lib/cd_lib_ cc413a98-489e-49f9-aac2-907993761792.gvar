@@ -1,51 +1,57 @@
 # CooldownLib
-# Stores cooldowns as expiry epoch seconds in one cvar dict:
-# { "key": expiry_epoch_seconds }
+# Cooldowns stored as expiry epoch seconds in ONE cvar dict: { "key": expiry_epoch }
 
 COOLDOWNLIB_VERSION = "1.0"
 DEFAULT_CVAR = "cooldowns"
 
-ch = character()
-
 def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
-    store = {}
-    state = {"error": False, "cvar": cvar}
+    ch = character()
+
+    # All state lives in this dict so we never need nonlocal
+    cd = {
+        "error": False,
+        "cvar": cvar,
+        "user_mode": user_mode,
+        "store": {},
+    }
 
     def _now():
         return int(float(time()))
 
     def _load():
-        nonlocal store
-        if not user_mode:
-            store = {}
+        if not cd.user_mode:
+            cd.store = {}
             return
-        raw = ch.get_cvar(cvar, "{}")
+
+        raw = ch.get_cvar(cd.cvar, "{}")
         try:
             data = load_yaml(raw)
-            store = data if typeof(data) == "SafeDict" else {}
+            cd.store = data if typeof(data) == "SafeDict" else {}
         except:
-            store = {}
-            state["error"] = True
+            cd.store = {}
+            cd.error = True
 
     def prune(now=None):
         now = _now() if now is None else int(now)
         removed = 0
-        for k in list(store.keys()):
+        s = cd.store
+
+        for k in list(s.keys()):
             try:
-                if int(store[k]) <= now:
-                    store.pop(k, None)
+                if int(s[k]) <= now:
+                    s.pop(k, None)
                     removed += 1
             except:
-                store.pop(k, None)
+                s.pop(k, None)
                 removed += 1
         return removed
 
     def get_expiry(key):
         key = str(key)
-        if key not in store:
+        if key not in cd.store:
             return None
         try:
-            return int(store[key])
+            return int(cd.store[key])
         except:
             return None
 
@@ -59,34 +65,29 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
     def ready(key, now=None):
         return remaining(key, now=now) == 0
 
-    def set(key, seconds, now=None):
+    def set_timer(key, seconds, now=None):
         now = _now() if now is None else int(now)
         key = str(key)
         seconds = max(0, int(seconds))
         exp = now + seconds
-        store[key] = exp
+        cd.store[key] = exp
         return exp
 
     def clear(key):
-        return store.pop(str(key), None) is not None
+        return cd.store.pop(str(key), None) is not None
 
     def save(error=False):
-        if not user_mode or error or state["error"]:
+        if (not cd.user_mode) or error or cd.error:
             return -1
         prune()
-        ch.set_cvar(cvar, dump_json(store))
+        ch.set_cvar(cd.cvar, dump_json(cd.store))
         return 1
 
-    # Discord timestamp helpers
-    def ts(expiry, *, style="R"):
+    def ts(expiry, style="R"):
         expiry = int(expiry)
         return f"<t:{expiry}:{style}>"
 
     def format_window(expiry, now=None):
-        # Matches your style:
-        # - under 91 seconds: raw seconds
-        # - under 1 day: relative timestamp
-        # - otherwise: date + time
         now = _now() if now is None else int(now)
         expiry = int(expiry)
         delta = max(0, expiry - now)
@@ -94,21 +95,19 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         if delta < 91:
             return f"in {delta} seconds"
         if delta <= 86400:
-            return ts(expiry, style="R")
-        return f"on {ts(expiry, style='D')} at {ts(expiry, style='T')}"
+            return ts(expiry, "R")
+        return f"on {ts(expiry, 'D')} at {ts(expiry, 'T')}"
 
-    # Single-key gate
-    def gate(key, seconds, *, now=None, set_on_pass=True):
+    def gate(key, seconds, now=None, set_on_pass=True):
         now = _now() if now is None else int(now)
         key = str(key)
 
-        rem = remaining(key, now=now)
         exp = get_expiry(key)
+        rem = 0 if not exp else max(0, int(exp) - now)
         ok = rem == 0
 
         if ok and set_on_pass and int(seconds) > 0:
-            exp = set(key, seconds, now=now)
-            rem = 0
+            exp = set_timer(key, seconds, now=now)
 
         return {
             "ok": ok,
@@ -119,8 +118,7 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
             "remaining": rem,
         }
 
-    # Any-of group gate (shared cooldown family)
-    def gate_any(keys, seconds, *, now=None, set_on_pass=True):
+    def gate_any(keys, seconds, now=None, set_on_pass=True):
         now = _now() if now is None else int(now)
         keys = [str(k) for k in keys]
 
@@ -139,23 +137,28 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         ok = len(blocked) == 0
 
         if ok and set_on_pass and int(seconds) > 0:
-            exp = now + int(seconds)
+            exp_all = now + int(seconds)
             for k in keys:
-                store[k] = exp
+                cd.store[k] = exp_all
 
-        return {"ok": ok, "blocked": blocked, "next_expiry": next_expiry, "now": now}
+        return {
+            "ok": ok,
+            "blocked": blocked,
+            "next_expiry": next_expiry,
+            "now": now
+        }
 
+    # init
     _load()
     prune()
 
-    # Return state + functions (dot-access friendly)
-    functions = {
-        "store": store,
+    # return a dict that supports dot access in Drac2
+    return cd | {
         "prune": prune,
         "get_expiry": get_expiry,
         "remaining": remaining,
         "ready": ready,
-        "set": set,
+        "set_timer": set_timer,
         "clear": clear,
         "save": save,
         "ts": ts,
@@ -163,5 +166,3 @@ def Cooldowns(cvar=DEFAULT_CVAR, *, user_mode=True):
         "gate": gate,
         "gate_any": gate_any,
     }
-
-    return state | functions

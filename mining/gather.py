@@ -2,6 +2,14 @@ embed
 <drac2>
 ch = character()
 data = load_json(get_gvar("c2535af3-0e34-44dc-9412-c1d72c9a70f6"))
+using(
+    cdlib="cc413a98-489e-49f9-aac2-907993761792"
+)
+
+cd = cdlib.Cooldowns()
+# Cooldown in seconds
+# TODO: Bump to 3000 after testing
+cooldown = 300
 
 FOOTER = "!mining help, list | @konnivingkrook#0"
 thumb = f' -thumb "{ch.image}"' if ch.image else ""
@@ -70,6 +78,17 @@ if cmd in ["help", "list", "?"]:
 
     title = "Mining Help" if cmd != "list" else "Mining List"
     return build(title, lines, [])
+
+# ---- Cooldown Ready? ----
+gate = cd.gate("mining", cooldown, set_on_pass=False)
+if not gate["ok"]:
+    title = "Mining"
+    lines = []
+    lines.append(f"Available: {cd.ts(gate['expiry'], 'R')} ")
+    return build(title, lines, [])
+
+cd.set_timer("mining", cooldown)
+cd.save()
 
 # ---- tier or all ----
 tier = tier_aliases.get(cmd, cmd)
