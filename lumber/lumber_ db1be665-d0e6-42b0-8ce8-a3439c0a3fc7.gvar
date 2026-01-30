@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "description": "Tier and config data for lumber gathering (no nodes).",
+  "tiers": {
+    "common": { "dc": 11, "label": "Common" },
+    "uncommon": { "dc": 16, "label": "Uncommon" },
+    "rare": { "dc": 21, "label": "Rare" }
+  },
+  "tier_aliases": {
+    "c": "common",
+    "u": "uncommon",
+    "r": "rare",
+    "common": "common",
+    "uncommon": "uncommon",
+    "rare": "rare"
+  },
+  "config": {
+    "cooldown": 10800,
+    "tool_names": [
+      "woodcarver's tools",
+      "carpenter's tools"
+    ],
+    "tool_ability": "str",
+    "harvest_skill": "athletics",
+    "tier_weights": {
+      "common": 70,
+      "uncommon": 25,
+      "rare": 5
+    },
+    "default_tier": "common",
+    "find_skill_default": "nature"
+  }
+}

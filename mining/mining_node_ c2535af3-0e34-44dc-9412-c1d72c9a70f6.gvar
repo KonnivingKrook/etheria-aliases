@@ -1,11 +1,30 @@
 {
   "version": 6,
   "description": "Tmine mining nodes. D&D-standard rarity tiers. Flat DC by tier. Random selection uses rarity weight (higher = more common). Rebalanced weights to make rare/legendary less frequent and reduce gem rate.",
+  "config": {
+    "cooldown": 10800,
+    "tool_names": [
+      "mason's tools"
+    ],
+    "tool_ability": "str",
+    "harvest_skill": "athletics",
+    "find_skill_default": "nature",
+    "default_tier": "common",
+    "bag_label": "Mining"
+  },
   "tiers": {
-    "common": { "dc": 11 },
-    "uncommon": { "dc": 16 },
-    "rare": { "dc": 21 },
-    "legendary": { "dc": 26 }
+    "common": {
+      "dc": 11
+    },
+    "uncommon": {
+      "dc": 16
+    },
+    "rare": {
+      "dc": 21
+    },
+    "legendary": {
+      "dc": 26
+    }
   },
   "tier_aliases": {
     "c": "common",
@@ -15,13 +34,7 @@
     "common": "common",
     "uncommon": "uncommon",
     "rare": "rare",
-    "legendary": "legendary",
-
-    "crude": "common",
-    "good": "uncommon",
-    "exel": "rare",
-    "excel": "rare",
-    "excellent": "rare"
+    "legendary": "legendary"
   },
   "nodes": [
     {
@@ -30,7 +43,7 @@
       "tier": "common",
       "rarity": 60,
       "category": "ore",
-      "found": "You come across Stone!",
+      "found": "You come across **Stone**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the stone out!"
     },
@@ -40,7 +53,7 @@
       "tier": "common",
       "rarity": 60,
       "category": "ore",
-      "found": "You come across a vein of Coal!",
+      "found": "You come across a vein of **Coal**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the ore out!"
     },
@@ -50,7 +63,7 @@
       "tier": "common",
       "rarity": 48,
       "category": "ore",
-      "found": "You come across a node of Iron!",
+      "found": "You come across a node of **Iron**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the ore out!"
     },
@@ -60,7 +73,7 @@
       "tier": "common",
       "rarity": 40,
       "category": "ore",
-      "found": "And you come across a vein of Copper!",
+      "found": "And you come across a vein of **Copper**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the ore out!"
     },
@@ -70,7 +83,7 @@
       "tier": "common",
       "rarity": 32,
       "category": "ore",
-      "found": "You come across a vein of Tin!",
+      "found": "You come across a vein of **Tin**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the ore out!"
     },
@@ -80,29 +93,27 @@
       "tier": "common",
       "rarity": 24,
       "category": "ore",
-      "found": "You come across a vein of Lead!",
+      "found": "You come across a vein of **Lead**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Despite your best efforts you can't seem to get the ore out!"
     },
-
     {
       "id": "granite",
       "name": "Granite",
       "tier": "uncommon",
       "rarity": 20,
       "category": "ore",
-      "found": "You come across a vein of Granite!",
+      "found": "You come across a vein of **Granite**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the granite is buried too deep into the rocks to reach it!"
     },
-
     {
       "id": "silver",
       "name": "Silver",
       "tier": "uncommon",
       "rarity": 12,
       "category": "ore",
-      "found": "You come across a vein of Silver!",
+      "found": "You come across a vein of **Silver**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the silver is buried too deep into the rocks to reach it!"
     },
@@ -112,29 +123,27 @@
       "tier": "uncommon",
       "rarity": 6,
       "category": "ore",
-      "found": "You come across a node of Gold!",
+      "found": "You come across a node of **Gold**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the gold is buried too deep into the rocks to reach it!"
     },
-
     {
       "id": "marble",
       "name": "Marble",
       "tier": "rare",
       "rarity": 6,
       "category": "ore",
-      "found": "You come across a vein of Marble!",
+      "found": "You come across a vein of **Marble**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the marble is buried too deep into the rocks to reach it!"
     },
-
     {
       "id": "electrum",
       "name": "Electrum",
       "tier": "rare",
       "rarity": 2,
       "category": "ore",
-      "found": "You come across a pale-gold vein shot through with silver... Electrum!",
+      "found": "You come across a pale-gold vein shot through with silver... **Electrum**!",
       "pass": "After a long stretch of careful work, you manage to collect the electrum.",
       "fail": "The seam collapses into rubble before you can extract anything useful."
     },
@@ -144,18 +153,17 @@
       "tier": "rare",
       "rarity": 1,
       "category": "ore",
-      "found": "You come across a node of Mithril!",
+      "found": "You come across a node of **Mithril**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the Mithril is buried too deep into the rocks to reach it!"
     },
-
     {
       "id": "platinum",
       "name": "Platinum",
       "tier": "legendary",
       "rarity": 1,
       "category": "ore",
-      "found": "You come across a node of Platinum!",
+      "found": "You come across a node of **Platinum**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the Platinum is buried too deep into the rocks to reach it!"
     },
@@ -165,11 +173,10 @@
       "tier": "legendary",
       "rarity": 1,
       "category": "ore",
-      "found": "You come across a node of the rare and valuable Adamantine!",
+      "found": "You come across a node of the rare and valuable **Adamantine**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the Adamantine is buried too deep into the rocks to reach it!"
     },
-
     {
       "id": "garnet",
       "name": "Garnet",
@@ -177,7 +184,7 @@
       "rarity": 10,
       "category": "gem",
       "found": "You spot a dull red gleam embedded in the stone.",
-      "pass": "With careful work, you extract a usable garnet.",
+      "pass": "With careful work, you extract a usable **garnet**.",
       "fail": "The crystal fractures under pressure and is lost."
     },
     {
@@ -187,7 +194,7 @@
       "rarity": 10,
       "category": "gem",
       "found": "A pale green crystal catches the light in the rock face.",
-      "pass": "You pry the peridot free without damaging it.",
+      "pass": "You pry the **peridot** free without damaging it.",
       "fail": "The stone crumbles before you can recover it."
     },
     {
@@ -197,10 +204,9 @@
       "rarity": 8,
       "category": "gem",
       "found": "You notice a warm golden shimmer beneath the surface.",
-      "pass": "The topaz comes free in your hands.",
+      "pass": "The **topaz** comes free in your hands.",
       "fail": "The gem slips loose and shatters."
     },
-
     {
       "id": "aquamarine",
       "name": "Aquamarine",
@@ -208,8 +214,8 @@
       "rarity": 5,
       "category": "gem",
       "found": "A cool blue crystal vein runs through the stone.",
-      "pass": "You recover a clean aquamarine crystal.",
-      "fail": "The crystal breaks along a fault line."
+      "pass": "You recover a clean **aquamarine** crystal.",
+      "fail": "The crystal breaks along a fault line and is ruined."
     },
     {
       "id": "blue_spinel",
@@ -218,7 +224,7 @@
       "rarity": 4,
       "category": "gem",
       "found": "A deep blue glint reveals a hidden spinel.",
-      "pass": "You extract the blue spinel intact.",
+      "pass": "You extract the **blue spinel** intact.",
       "fail": "The spinel fractures and loses its value."
     },
     {
@@ -228,10 +234,9 @@
       "rarity": 4,
       "category": "gem",
       "found": "A sharp red sparkle flashes in the stone.",
-      "pass": "You free the red spinel with practiced care.",
+      "pass": "You free the **red spinel** with practiced care.",
       "fail": "The gem splinters under the chisel."
     },
-
     {
       "id": "opal",
       "name": "Opal",
@@ -239,7 +244,7 @@
       "rarity": 2,
       "category": "gem",
       "found": "Iridescent colors ripple beneath the rock surface.",
-      "pass": "You extract the opal without cracking its fragile body.",
+      "pass": "You extract the **opal** without cracking its fragile body.",
       "fail": "The opal crazes and loses its brilliance."
     },
     {
@@ -249,10 +254,9 @@
       "rarity": 1,
       "category": "gem",
       "found": "A fiery orange-red gem glows faintly in the stone.",
-      "pass": "The jacinth comes free, blazing with color.",
+      "pass": "The **jacinth** comes free, blazing with color.",
       "fail": "The gem shatters under the strain."
     },
-
     {
       "id": "emerald",
       "name": "Emerald",
@@ -260,7 +264,7 @@
       "rarity": 1,
       "category": "gem",
       "found": "A deep green crystal pulses faintly within the rock.",
-      "pass": "You recover a flawless emerald of exceptional quality.",
+      "pass": "You recover a flawless **emerald** of exceptional quality.",
       "fail": "The emerald fractures, its value ruined."
     },
     {
@@ -270,7 +274,7 @@
       "rarity": 1,
       "category": "gem",
       "found": "A crimson glow burns beneath the stone surface.",
-      "pass": "You extract a brilliant ruby, warm to the touch.",
+      "pass": "You extract a brilliant **ruby**, warm to the touch.",
       "fail": "The ruby cracks and dulls instantly."
     },
     {
@@ -280,8 +284,8 @@
       "rarity": 1,
       "category": "gem",
       "found": "A rich blue light shines from deep within the rock.",
-      "pass": "You carefully free a pristine sapphire.",
-      "fail": "The sapphire splits cleanly in two."
+      "pass": "You carefully free a pristine **sapphire**.",
+      "fail": "The sapphire crumbles to dust."
     }
   ]
 }
