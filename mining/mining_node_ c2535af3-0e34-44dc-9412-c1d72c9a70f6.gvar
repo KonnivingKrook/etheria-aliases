@@ -2,7 +2,7 @@
   "version": 6,
   "description": "Tmine mining nodes. D&D-standard rarity tiers. Flat DC by tier. Random selection uses rarity weight (higher = more common). Rebalanced weights to make rare/legendary less frequent and reduce gem rate.",
   "config": {
-    "cooldown": 10800,
+    "cooldown": 7200,
     "tool_names": [
       "mason's tools"
     ],

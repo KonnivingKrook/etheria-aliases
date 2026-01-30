@@ -15,7 +15,7 @@
     "rare": "rare"
   },
   "config": {
-    "cooldown": 10800,
+    "cooldown": 7200,
     "tool_names": [
       "woodcarver's tools",
       "carpenter's tools"
