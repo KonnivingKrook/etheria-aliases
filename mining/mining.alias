@@ -1,0 +1,185 @@
+embed
+<drac2>
+ch = character()
+data = load_json(get_gvar("c2535af3-0e34-44dc-9412-c1d72c9a70f6"))
+using(
+    cdlib="cc413a98-489e-49f9-aac2-907993761792",
+    gather="6d152ad4-045e-4e48-92c4-820929143039",
+    baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
+)
+
+cd = cdlib.Cooldowns()
+cfg = data.get("config") or {}
+
+cooldown = int(cfg.get("cooldown", 5))
+tool_options = cfg.get("tool_names") or ["mason's tools"]
+tool_type = typeof(tool_options)
+if tool_type == "str":
+    tool_options = [tool_options]
+elif tool_type in ["list", "tuple", "SafeList", "SafeTuple"]:
+    tool_options = [t for t in (tool_options or []) if t]
+else:
+    tool_options = [tool_options] if tool_options else []
+tool_options = [t for t in (tool_options or []) if t]
+if not tool_options:
+    tool_options = ["mason's tools"]
+
+tool_ability = cfg.get("tool_ability", "str")
+harvest_skill = cfg.get("harvest_skill", "athletics")
+find_skill = (cfg.get("find_skill_default") or "nature").lower()
+reward_label = cfg.get("reward_label", "Pickaxe")
+bag_label = cfg.get("bag_label", "Mining")
+bag_cvar = cfg.get("bag_cvar", "bags")
+
+FOOTER = "!mining help, list | @konnivingkrook#0"
+
+nodes = data.get("nodes", [])
+tiers = data.get("tiers", {})
+
+args = [a.lower() for a in &ARGS&]
+cmd = args[0] if args else ""
+
+use_adv = "adv" in args
+use_dis = "dis" in args
+use_guidance = ("guidance" in args) or ("g" in args)
+
+# ---- help / list ----
+if cmd in ["help", "list", "?"]:
+    tier_names = ", ".join(tiers.keys()) if tiers else "none"
+
+    by_tier = {}
+    for n in nodes:
+        t = (n.get("tier") or "unknown").lower()
+        by_tier.setdefault(t, []).append(n.get("id") or "unknown")
+
+    lines = []
+    lines.append("**Mining**")
+    lines.append("Mine a random node (weighted by rarity), optionally filtering by tier.")
+    lines.append("")
+    lines.append("**Usage**")
+    lines.append("- `!mining`")
+    lines.append(f"- `!mining <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- Optional: add `adv` or `dis`")
+    lines.append("- Optional: add `guidance`")
+    lines.append("")
+    lines.append("**Bags**")
+    lines.append(f"- Loot is stored in your `{bag_label}` bag (auto-created if missing).")
+    lines.append("")
+    lines.append("**Tiers**")
+
+    for t in sorted(by_tier.keys()):
+        ids = ", ".join(sorted(by_tier[t]))
+        dc_val = tiers.get(t, {}).get("dc", "?")
+        lines.append(f"- **{t}** (DC {dc_val}): {ids}")
+
+    title = "Mining List" if cmd == "list" else "Mining Help"
+    return gather.build_output(title, lines, [], footer=FOOTER)
+
+# ---- Cooldown Ready? ----
+gate = cd.gate("mining", cooldown, set_on_pass=False)
+if not gate["ok"]:
+    return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"] , [], footer=FOOTER)
+
+cd.set_timer("mining", cooldown)
+cd.save()
+
+# ---- Node selection ----
+sel = gather.select_node(data, cmd)
+node = sel.get("node")
+if not node:
+    return gather.build_output("Mining", ["No mining nodes configured."], [], footer=FOOTER)
+
+node_tier = sel.get("tier") or "common"
+node_dc = int(sel.get("dc_val") or 10)
+
+# ---- Find check ----
+find = gather.find_check(
+    ch,
+    skill=find_skill,
+    dc=node_dc,
+    use_adv=use_adv,
+    use_dis=use_dis,
+    guidance=use_guidance
+)
+
+if not find.get("ok"):
+    desc = [
+        "You search the rock face for anything worth working...",
+        "",
+        f"**Tier:** {node_tier} (DC {node_dc})",
+        "",
+        "You can’t find a workable node here."
+    ]
+    fields = [
+        (find_skill.title(), find.get("error") or str(find.get("roll"))),
+        ("Resources", "0\nNo resources gained."),
+    ]
+    return gather.build_output("Mining", desc, fields, footer=FOOTER)
+
+# ---- Extraction ----
+ex = gather.roll_extraction_best(
+    ch,
+    adv=use_adv,
+    dis=use_dis,
+    guidance=use_guidance,
+    tool_name=tool_options,
+    tool_ability=tool_ability,
+    skill_name=harvest_skill,
+    prefer_tools_on_tie=True
+)
+
+extract_name = ex.get("name") or "Extraction"
+extract_check = ex.get("roll")
+extracted = bool(extract_check and (extract_check.total >= node_dc))
+
+flags = gather.extraction_flags(ex)
+reward = gather.calc_reward_points(
+    extracted,
+    adv=use_adv,
+    dis=use_dis,
+    has_prof=flags.get("has_prof"),
+    has_exp=flags.get("has_exp"),
+    base_label=reward_label
+)
+
+points = reward.get("points", 0)
+point_str = "\n".join(reward.get("lines") or [])
+node_name = (node.get("name") or node.get("id") or "Resource").strip()
+
+bag_field = ""
+if extracted and points > 0:
+    bag_result = gather.add_rewards_to_bag(
+        ch,
+        activity="mining",
+        bag_label=bag_label,
+        bag_cvar=bag_cvar,
+        rewards={node_name: points}
+    )
+    if bag_result.get("ok") and bag_result.get("bag_name"):
+        bag_field = f"{bag_result['bag_name']}: +{points} {node_name}"
+    else:
+        bag_field = bag_result.get("error") or "Unable to record loot."
+
+# ---- Output ----
+desc_lines = [
+    node.get("found") or "",
+    "",
+    f"**Tier:** {node_tier} (DC {node_dc})",
+    (node.get("pass") if extracted else node.get("fail")) or ""
+]
+
+fields = [
+    (find_skill.title(), str(find.get("roll"))),
+    (extract_name, str(extract_check)),
+]
+
+if extracted:
+    fields.append(("Resources", f"{points} {node_name}\n{point_str}"))
+else:
+    fields.append(("Resources", "0\nNo resources gained."))
+
+if bag_field:
+    fields.append(("Bag", bag_field))
+
+return gather.build_output("Mining", desc_lines, fields, footer=FOOTER)
+</drac2>
