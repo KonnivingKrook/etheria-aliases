@@ -112,14 +112,24 @@ def party_block(c):
     return "\n".join(lines)
 
 def monster_block(c):
-    return f"**{c.name}**: {c.hp_str()}"
+    if not details:
+        return f"**{c.name}**: {c.hp_str()}"
+
+    lines = [f"**{c.name}**:", f"> {c.hp_str()}"]
+
+    eff = join_effects(c.effects)
+    if eff:
+        lines.append(f"> Effects: {eff}")
+
+    return "\n".join(lines)
+
 
 party_lines = []
 monster_lines = []
 
 for c in cb.combatants:
     if c.hp is None:
-        continue
+        continue  # Skips DM
     if c.monster_name is None:
         party_lines.append(party_block(c))
     else:

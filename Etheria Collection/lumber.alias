@@ -16,9 +16,9 @@ cfg = (data.get("config") or {})
 def respond(title, desc=None, fields=None):
     return gather.build_output(title, desc or [], fields or [], footer=FOOTER, ch=ch)
 
-# Default 3 hours (override via cfg)
+# Default 2 hours (override via cfg)
 tier_defaults = {"common": 70, "uncommon": 25, "rare": 5}
-cooldown = int(cfg.get("cooldown", 10800))
+cooldown = int(cfg.get("cooldown", 7200))
 
 # Tier weights only matter when not targeting a tier explicitly
 tier_weights = (cfg.get("tier_weights") or tier_defaults)

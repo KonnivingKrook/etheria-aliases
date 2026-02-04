@@ -11,7 +11,7 @@ using(
 cd = cdlib.Cooldowns()
 cfg = data.get("config") or {}
 
-cooldown = int(cfg.get("cooldown", 5))
+cooldown = int(cfg.get("cooldown", 7200))
 tool_options = cfg.get("tool_names") or ["mason's tools"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
