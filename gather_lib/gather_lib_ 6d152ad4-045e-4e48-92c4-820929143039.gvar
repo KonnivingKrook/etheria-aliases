@@ -755,3 +755,76 @@ def add_rewards_to_bag(
     mgr.save_bags()
 
     return {"ok": True, "bag_name": bag_name, "added": deltas}
+
+# ---------------------------------------------------------------------------
+# Node Lookup / Search Helpers
+# ---------------------------------------------------------------------------
+
+def _str(v):
+    return (v or "").strip()
+
+def _norm_text(s):
+    s = (s or "").strip().lower()
+    s = s.replace("’", "'")
+    s = " ".join(s.split())
+    return s
+
+def node_id(node):
+    return _norm_text(node.get("id") or "")
+
+def node_name(node):
+    return _norm_text(node.get("name") or "")
+
+def node_tier(node):
+    return _norm_text(node.get("tier") or "")
+
+def get_node_by_id(data, node_id_query):
+    """
+    Exact lookup by node id (case-insensitive, whitespace-insensitive).
+    Returns node dict or None.
+    """
+    q = _norm_text(node_id_query)
+    if not q:
+        return None
+
+    for n in (data.get("nodes") or []):
+        if node_id(n) == q:
+            return n
+    return None
+
+def search_nodes(data, query, tier=None, limit=10):
+    """
+    Partial search by id or name substring.
+    Returns a list of matching nodes (up to limit).
+    """
+    q = _norm_text(query)
+    if not q:
+        return []
+
+    tier = _norm_text(tier) if tier else ""
+    out = []
+
+    for n in (data.get("nodes") or []):
+        if tier and node_tier(n) != tier:
+            continue
+
+        nid = node_id(n)
+        nname = node_name(n)
+
+        if (q in nid) or (q in nname):
+            out.append(n)
+            if len(out) >= int(limit):
+                break
+
+    return out
+
+def format_node_hit(n, tiers=None):
+    """
+    One-line display for search results.
+    """
+    tiers = tiers or {}
+    t = node_tier(n) or "unknown"
+    dc = (tiers.get(t) or {}).get("dc", "?")
+    rid = _str(n.get("id") or "unknown")
+    nm = _str(n.get("name") or rid)
+    return f"- `{rid}`: {nm} (tier {t}, DC {dc})"
