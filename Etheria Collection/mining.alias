@@ -11,7 +11,7 @@ using(
 cd = cdlib.Cooldowns()
 cfg = data.get("config") or {}
 
-cooldown = int(cfg.get("cooldown", 7200))
+cooldown = int(cfg.get("cooldown", 5))
 tool_options = cfg.get("tool_names") or ["mason's tools"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
@@ -67,8 +67,13 @@ if cmd in ["help", "list", "?"]:
     lines.append("")
     lines.append("**Tiers**")
 
-    for t in sorted(by_tier.keys()):
-        ids = ", ".join(sorted(by_tier[t]))
+    tier_keys = list(by_tier.keys())
+    tier_keys.sort()
+
+    for t in tier_keys:
+        ids_list = [i for i in by_tier[t] if i]
+        ids_list.sort()
+        ids = ", ".join(ids_list)
         dc_val = tiers.get(t, {}).get("dc", "?")
         lines.append(f"- **{t}** (DC {dc_val}): {ids}")
 
@@ -78,7 +83,7 @@ if cmd in ["help", "list", "?"]:
 # ---- Cooldown Ready? ----
 gate = cd.gate("mining", cooldown, set_on_pass=False)
 if not gate["ok"]:
-    return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"] , [], footer=FOOTER)
+    return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
 
 cd.set_timer("mining", cooldown)
 cd.save()
