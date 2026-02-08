@@ -140,7 +140,8 @@ cd.set_timer("mining", cooldown)
 cd.save()
 
 # ---- Node selection ----
-sel = gather.select_node(data, cmd)
+# sel = gather.select_node(data, cmd)
+sel = forced_sel or gather.select_node(data, cmd)
 node = sel.get("node")
 if not node:
     return gather.build_output("Mining", ["No mining nodes configured."], [], footer=FOOTER)
