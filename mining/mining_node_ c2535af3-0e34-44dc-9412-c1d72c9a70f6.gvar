@@ -1,11 +1,9 @@
 {
-  "version": 6,
-  "description": "Tmine mining nodes. D&D-standard rarity tiers. Flat DC by tier. Random selection uses rarity weight (higher = more common). Rebalanced weights to make rare/legendary less frequent and reduce gem rate.",
+  "version": 7,
+  "description": "Mining nodes. D&D-standard rarity tiers. Flat DC by tier. Random selection uses rarity weight (higher = more common). Adamantine removed. Mithril promoted to legendary. Added magisteel and titanium as mid/high-tier magical metals.",
   "config": {
     "cooldown": 7200,
-    "tool_names": [
-      "mason's tools"
-    ],
+    "tool_names": ["mason's tools"],
     "tool_ability": "str",
     "harvest_skill": "athletics",
     "find_skill_default": "nature",
@@ -13,18 +11,10 @@
     "bag_label": "Mining"
   },
   "tiers": {
-    "common": {
-      "dc": 11
-    },
-    "uncommon": {
-      "dc": 16
-    },
-    "rare": {
-      "dc": 21
-    },
-    "legendary": {
-      "dc": 26
-    }
+    "common": { "dc": 11 },
+    "uncommon": { "dc": 16 },
+    "rare": { "dc": 21 },
+    "legendary": { "dc": 26 }
   },
   "tier_aliases": {
     "c": "common",
@@ -128,6 +118,16 @@
       "fail": "Try as you may, the gold is buried too deep into the rocks to reach it!"
     },
     {
+      "id": "magisteel",
+      "name": "Magisteel",
+      "tier": "uncommon",
+      "rarity": 6,
+      "category": "ore",
+      "found": "Arcane runes shimmer faintly across a dark steel vein.",
+      "pass": "You carefully extract the **magisteel**, its surface still warm with magic.",
+      "fail": "The arcane charge destabilizes and the vein collapses."
+    },
+    {
       "id": "marble",
       "name": "Marble",
       "tier": "rare",
@@ -136,6 +136,16 @@
       "found": "You come across a vein of **Marble**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the marble is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "tier": "rare",
+      "rarity": 3,
+      "category": "ore",
+      "found": "A pale, impossibly light metal gleams beneath the stone.",
+      "pass": "You extract the **titanium**, surprisingly light for its strength.",
+      "fail": "The vein shears apart before you can secure any usable metal."
     },
     {
       "id": "electrum",
@@ -150,12 +160,12 @@
     {
       "id": "mithril",
       "name": "Mithril",
-      "tier": "rare",
+      "tier": "legendary",
       "rarity": 1,
       "category": "ore",
-      "found": "You come across a node of **Mithril**!",
-      "pass": "You make relatively short work of the node.",
-      "fail": "Try as you may, the Mithril is buried too deep into the rocks to reach it!"
+      "found": "A silvery-blue metal hums softly with latent power... **Mithril**.",
+      "pass": "With painstaking precision, you extract the mithril intact.",
+      "fail": "The magical metal resists your efforts and slips back into the stone."
     },
     {
       "id": "platinum",
@@ -166,126 +176,6 @@
       "found": "You come across a node of **Platinum**!",
       "pass": "You make relatively short work of the node.",
       "fail": "Try as you may, the Platinum is buried too deep into the rocks to reach it!"
-    },
-    {
-      "id": "adamantine",
-      "name": "Adamantine",
-      "tier": "legendary",
-      "rarity": 1,
-      "category": "ore",
-      "found": "You come across a node of the rare and valuable **Adamantine**!",
-      "pass": "You make relatively short work of the node.",
-      "fail": "Try as you may, the Adamantine is buried too deep into the rocks to reach it!"
-    },
-    {
-      "id": "garnet",
-      "name": "Garnet",
-      "tier": "common",
-      "rarity": 10,
-      "category": "gem",
-      "found": "You spot a dull red gleam embedded in the stone.",
-      "pass": "With careful work, you extract a usable **garnet**.",
-      "fail": "The crystal fractures under pressure and is lost."
-    },
-    {
-      "id": "peridot",
-      "name": "Peridot",
-      "tier": "common",
-      "rarity": 10,
-      "category": "gem",
-      "found": "A pale green crystal catches the light in the rock face.",
-      "pass": "You pry the **peridot** free without damaging it.",
-      "fail": "The stone crumbles before you can recover it."
-    },
-    {
-      "id": "topaz",
-      "name": "Topaz",
-      "tier": "common",
-      "rarity": 8,
-      "category": "gem",
-      "found": "You notice a warm golden shimmer beneath the surface.",
-      "pass": "The **topaz** comes free in your hands.",
-      "fail": "The gem slips loose and shatters."
-    },
-    {
-      "id": "aquamarine",
-      "name": "Aquamarine",
-      "tier": "uncommon",
-      "rarity": 5,
-      "category": "gem",
-      "found": "A cool blue crystal vein runs through the stone.",
-      "pass": "You recover a clean **aquamarine** crystal.",
-      "fail": "The crystal breaks along a fault line and is ruined."
-    },
-    {
-      "id": "blue_spinel",
-      "name": "Blue Spinel",
-      "tier": "uncommon",
-      "rarity": 4,
-      "category": "gem",
-      "found": "A deep blue glint reveals a hidden spinel.",
-      "pass": "You extract the **blue spinel** intact.",
-      "fail": "The spinel fractures and loses its value."
-    },
-    {
-      "id": "red_spinel",
-      "name": "Red Spinel",
-      "tier": "uncommon",
-      "rarity": 4,
-      "category": "gem",
-      "found": "A sharp red sparkle flashes in the stone.",
-      "pass": "You free the **red spinel** with practiced care.",
-      "fail": "The gem splinters under the chisel."
-    },
-    {
-      "id": "opal",
-      "name": "Opal",
-      "tier": "rare",
-      "rarity": 2,
-      "category": "gem",
-      "found": "Iridescent colors ripple beneath the rock surface.",
-      "pass": "You extract the **opal** without cracking its fragile body.",
-      "fail": "The opal crazes and loses its brilliance."
-    },
-    {
-      "id": "jacinth",
-      "name": "Jacinth",
-      "tier": "rare",
-      "rarity": 1,
-      "category": "gem",
-      "found": "A fiery orange-red gem glows faintly in the stone.",
-      "pass": "The **jacinth** comes free, blazing with color.",
-      "fail": "The gem shatters under the strain."
-    },
-    {
-      "id": "emerald",
-      "name": "Emerald",
-      "tier": "legendary",
-      "rarity": 1,
-      "category": "gem",
-      "found": "A deep green crystal pulses faintly within the rock.",
-      "pass": "You recover a flawless **emerald** of exceptional quality.",
-      "fail": "The emerald fractures, its value ruined."
-    },
-    {
-      "id": "ruby",
-      "name": "Ruby",
-      "tier": "legendary",
-      "rarity": 1,
-      "category": "gem",
-      "found": "A crimson glow burns beneath the stone surface.",
-      "pass": "You extract a brilliant **ruby**, warm to the touch.",
-      "fail": "The ruby cracks and dulls instantly."
-    },
-    {
-      "id": "sapphire",
-      "name": "Sapphire",
-      "tier": "legendary",
-      "rarity": 1,
-      "category": "gem",
-      "found": "A rich blue light shines from deep within the rock.",
-      "pass": "You carefully free a pristine **sapphire**.",
-      "fail": "The sapphire crumbles to dust."
     }
   ]
 }
