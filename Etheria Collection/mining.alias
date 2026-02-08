@@ -43,6 +43,57 @@ use_adv = "adv" in args
 use_dis = "dis" in args
 use_guidance = ("guidance" in args) or ("g" in args)
 
+# ---- direct node pick / search ----
+if cmd in ["node", "pick"]:
+    node_id_query = args[1] if len(args) > 1 else ""
+    n = gather.get_node_by_id(data, node_id_query)
+
+    if not n:
+        lines = []
+        lines.append("No exact node found.")
+        lines.append("")
+        lines.append("Try:")
+        lines.append("- `!mining search <text>`")
+        lines.append("- `!mining list`")
+        return gather.build_output("Mining", lines, [], footer=FOOTER)
+
+    # Build the same selection object shape your flow expects
+    node_tier = (n.get("tier") or "common").lower()
+    dc_val = int((tiers.get(node_tier) or {}).get("dc", 10))
+
+    sel = {"mode": "node", "pool_size": 1, "node": n, "tier": node_tier, "dc_val": dc_val}
+
+    # From here, skip your normal select_node call and continue using sel
+    # You can do that by setting a flag:
+    forced_sel = sel
+
+elif cmd in ["search", "findnode"]:
+    q = args[1] if len(args) > 1 else ""
+    tier_filter = args[2] if len(args) > 2 else ""  # optional tier filter as 3rd token
+
+    hits = gather.search_nodes(data, q, tier=tier_filter, limit=10)
+
+    lines = []
+    lines.append("**Node Search**")
+    if tier_filter:
+        lines.append(f"Tier filter: `{tier_filter}`")
+    lines.append("")
+
+    if not hits:
+        lines.append("No matches.")
+    else:
+        for n in hits:
+            lines.append(gather.format_node_hit(n, tiers))
+
+    lines.append("")
+    lines.append("Pick one with:")
+    lines.append("- `!mining node <id>`")
+
+    return gather.build_output("Mining", lines, [], footer=FOOTER)
+
+else:
+    forced_sel = None
+
 # ---- help / list ----
 if cmd in ["help", "list", "?"]:
     tier_names = ", ".join(tiers.keys()) if tiers else "none"
