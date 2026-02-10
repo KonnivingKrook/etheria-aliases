@@ -11,7 +11,7 @@ using(
 cd = cdlib.Cooldowns()
 cfg = data.get("config") or {}
 
-cooldown = int(cfg.get("cooldown", 5))
+cooldown = int(cfg.get("cooldown", 7200))
 tool_options = cfg.get("tool_names") or ["mason's tools"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
@@ -26,7 +26,7 @@ if not tool_options:
 
 tool_ability = cfg.get("tool_ability", "str")
 harvest_skill = cfg.get("harvest_skill", "athletics")
-find_skill = (cfg.get("find_skill_default") or "nature").lower()
+find_skill_default = (cfg.get("find_skill_default") or "nature").lower()
 reward_label = cfg.get("reward_label", "Pickaxe")
 bag_label = cfg.get("bag_label", "Mining")
 bag_cvar = cfg.get("bag_cvar", "bags")
@@ -139,6 +139,13 @@ if not gate["ok"]:
 cd.set_timer("mining", cooldown)
 cd.save()
 
+# Find skill selection: Default Nature, allow survival via args
+find_skill = find_skill_default.lower()
+if ("nature" in args) or ("nat" in args):
+    find_skill = "nature"
+elif ("survival" in args) or ("surv" in args):
+    find_skill = "survival"
+    
 # ---- Node selection ----
 # sel = gather.select_node(data, cmd)
 sel = forced_sel or gather.select_node(data, cmd)
