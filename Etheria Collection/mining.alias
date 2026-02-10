@@ -154,7 +154,12 @@ if not node:
     return gather.build_output("Mining", ["No mining nodes configured."], [], footer=FOOTER)
 
 node_tier = sel.get("tier") or "common"
-node_dc = int(sel.get("dc_val") or 10)
+base_dc = int(sel.get("dc_val") or 10)
+forced_dc_penalty = 5 if forced_sel else 0
+node_dc = base_dc + forced_dc_penalty
+
+dc_display = f"{base_dc}" + (f" +{forced_dc_penalty}[targeted] = {node_dc}" if forced_sel else "")
+
 
 # ---- Find check ----
 find = gather.find_check(
@@ -170,7 +175,7 @@ if not find.get("ok"):
     desc = [
         "You search the rock face for anything worth working...",
         "",
-        f"**Tier:** {node_tier} (DC {node_dc})",
+        f"**Tier:** {node_tier} (DC {dc_display})",
         "",
         "You can’t find a workable node here."
     ]
@@ -228,7 +233,7 @@ if extracted and points > 0:
 desc_lines = [
     node.get("found") or "",
     "",
-    f"**Tier:** {node_tier} (DC {node_dc})",
+    f"**Tier:** {node_tier} (DC {dc_display})",
     (node.get("pass") if extracted else node.get("fail")) or ""
 ]
 
