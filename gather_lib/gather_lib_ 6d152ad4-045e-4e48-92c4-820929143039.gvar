@@ -1,830 +1,204 @@
 # ---------------------------------------------------------------------------
-# GatherLib (shared helpers for Mining, Alchemy Harvesting, etc.)
+# GatherLib (Tier-Only System)
 # ---------------------------------------------------------------------------
 using(
-    baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
+  baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
 )
 
-# ---------------------------------------------------------------------------
-# Output Helpers
-# ---------------------------------------------------------------------------
+# -----------------------------
+# Text Helpers
+# -----------------------------
+def q(s):
+  return (s or "").replace("\"", "'")
 
-def quote(s):
-    return (s or "").replace("\"", "'")
+def title_words(s, default=""):
+  s = (s or "").strip()
+  if not s:
+    return default
+  out = []
+  for part in s.split(" "):
+    part = part.strip()
+    if not part:
+      continue
+    if len(part) == 1:
+      out.append(part.upper())
+    else:
+      out.append(part[0].upper() + part[1:].lower())
+  return " ".join(out) if out else (default or s)
 
-def build_output(title, desc_lines=None, fields=None, footer=None, thumb_url=None, ch=character()):
-    """
-    Returns a fully-formed embed argument string.
+# -----------------------------
+# Embed Builder
+# -----------------------------
+def build_output(
+  title,
+  desc_lines=None,
+  fields=None,
+  footer=None,
+  thumb_url=None,
+  time=None,
+  color=0x2ecc71,
+  ch=character()
+):
+  if thumb_url is None:
+    thumb_url = ch.image
 
-    title: str
-    desc_lines: list[str] (joined with \n)
-    fields: list[tuple[str, str]] -> [("Field Name", "Value"), ...]
-    footer: str (optional). If None, no footer is added.
-    thumb_url: str (optional). Raw URL only. If None, will use ch.image if available.
-    ch: character (optional). If None, uses character().
-    """
-    if thumb_url is None:
-        thumb_url = ch.image
+  desc = "\n".join(desc_lines or [])
+  out = [
+    f'-title "{q(title)}"',
+    f'-desc "{q(desc)}"',
+    f'-color {color}'
+  ]
 
-    desc = "\n".join(desc_lines or [])
-    out = [
-        f'-title "{quote(title)}"',
-        f'-desc "{quote(desc)}"',
-    ]
+  if footer:
+    out.append(f'-footer "{q(footer)}"')
 
-    if footer:
-        out.append(f'-footer "{quote(footer)}"')
+  if thumb_url:
+    out.append(f'-thumb "{thumb_url}"')
 
-    if thumb_url:
-        out.append(f'-thumb "{thumb_url}"')
+  if time is not None:
+    out.append(f'-t {int(time)}')
 
-    for n, v in (fields or []):
-        if v:
-            out.append(f'-f "{quote(n)}|{quote(v)}"')
+  for n, v in (fields or []):
+    if v:
+      out.append(f'-f "{q(n)}|{q(v)}"')
 
-    return " ".join(out)
+  return " ".join(out)
 
-def _title_words(s, default=""):
-    """
-    Lightweight title helper that preserves apostrophes (e.g., mason's -> Mason's).
-    """
-    s = (s or "").strip()
-    if not s:
-        return default
-
-    words = []
-    for part in s.split(" "):
-        part = part.strip()
-        if not part:
-            continue
-        if len(part) == 1:
-            words.append(part.upper())
-            continue
-        head = part[0].upper()
-        tail = part[1:].lower()
-        words.append(head + tail)
-
-    return " ".join(words) if words else (default or s)
-
-# ---------------------------------------------------------------------------
-# Tier + Node Helpers
-# ---------------------------------------------------------------------------
-
+# -----------------------------
+# Tier Selection
+# -----------------------------
 def resolve_tier(cmd, tier_aliases=None):
-    """
-    Normalizes a tier command using alias mapping.
-    cmd: str or ""
-    tier_aliases: dict
-    """
-    cmd = (cmd or "").lower().strip()
-    tier_aliases = tier_aliases or {}
-    return (tier_aliases.get(cmd, cmd) or "").lower().strip()
-
-def pool_for_tier(nodes, tier, tiers):
-    """
-    Returns (mode, pool)
-    mode: "tier" or "all"
-    """
-    tier = (tier or "").lower()
-    if tier and tier in (tiers or {}):
-        pool = [n for n in (nodes or []) if (n.get("tier") or "").lower() == tier]
-        if pool:
-            return "tier", pool
-    return "all", list(nodes or [])
-
-def pick_weighted(pool, weight_key="rarity", default_weight=1):
-    """
-    Weighted random choice. Higher weight => more common.
-    Returns None if the pool is empty or unusable.
-    """
-    pool = list(pool or [])
-    if not pool:
-        return None
-
-    weights = []
-    for n in pool:
-        try:
-            w = int(n.get(weight_key, default_weight))
-        except:
-            w = default_weight
-        weights.append(max(w, 1))
-
-    if not weights:
-        return None
-
-    try:
-        return randchoices(pool, weights=weights)[0]
-    except:
-        return None
-
-def select_node(data, cmd=None):
-    """
-    Selects a node (optionally by tier) and returns selection details.
-    data: dict loaded from your JSON gvar
-    cmd: optional tier string
-    """
-    nodes = data.get("nodes", [])
-    tiers = data.get("tiers", {})
-    tier_aliases = data.get("tier_aliases", {})
-
-    tier = resolve_tier(cmd, tier_aliases)
-    mode, pool = pool_for_tier(nodes, tier, tiers)
-
-    node = pick_weighted(pool)
-    if not node:
-        return {
-            "mode": mode,
-            "pool_size": len(pool),
-            "node": None,
-            "tier": "",
-            "dc_val": int((tiers.get(tier, {}) or {}).get("dc", 10)),
-            "error": "No nodes configured.",
-        }
-
-    node_tier = (node.get("tier") or "common").lower()
-    dc_val = int((tiers.get(node_tier, {}) or {}).get("dc", 10))
-
-    return {
-        "mode": mode,
-        "pool_size": len(pool),
-        "node": node,
-        "tier": node_tier,
-        "dc_val": dc_val,
-    }
+  cmd = (cmd or "").lower().strip()
+  tier_aliases = tier_aliases or {}
+  return (tier_aliases.get(cmd, cmd) or "").lower().strip()
 
 def pick_weighted_label(weight_map, default_label="common"):
-    """
-    Picks a label from a mapping of {label: weight}.
-    Accepts dict-like input. Weights can be int/float/str.
-    Returns default_label if the input is unusable.
-    """
-    if not weight_map:
-        return default_label
+  if not weight_map:
+    return default_label
 
-    labels = []
-    weights = []
+  labels = []
+  weights = []
 
-    for k in list(weight_map.keys()):
-        lbl = (k or "").strip().lower()
-        if not lbl:
-            continue
-
-        w_raw = weight_map.get(k, 0)
-        w = 0
-        try:
-            w = int(w_raw)
-        except:
-            try:
-                w = int(float(w_raw))
-            except:
-                w = 0
-
-        if w > 0:
-            labels.append(lbl)
-            weights.append(w)
-
-    if not labels:
-        return default_label
-
+  for lbl, w in weight_map.items():
+    lbl = (lbl or "").strip().lower()
     try:
-        return randchoices(labels, weights=weights)[0]
+      w = int(w)
     except:
-        return default_label
+      continue
+    if lbl and w > 0:
+      labels.append(lbl)
+      weights.append(w)
 
-def select_tier(data, cmd=None, *, weights=None, default_tier="common"):
-    """
-    Tier selection for "no nodes" systems (like lumber).
-    - If cmd resolves to a valid tier, uses it.
-    - Else uses weights (dict tier->weight) to pick randomly.
-    - Else falls back to default_tier.
+  if not labels:
+    return default_label
 
-    Returns { "mode", "tier", "dc_val" }
-    """
-    tiers = data.get("tiers", {})
-    tier_aliases = data.get("tier_aliases", {})
+  return randchoices(labels, weights=weights)[0]
 
-    resolved = resolve_tier(cmd, tier_aliases)
-    if resolved and resolved in tiers:
-        tier = resolved
-        mode = "tier"
-    else:
-        tier = pick_weighted_label(weights or {}, default_label=default_tier)
-        tier = tier if tier in tiers else default_tier
-        mode = "all"
+def select_tier(data, cmd=None):
+  tiers = data.get("tiers", {}) or {}
+  cfg = data.get("config", {}) or {}
+  tier_aliases = data.get("tier_aliases", {}) or {}
 
-    dc_val = int((tiers.get(tier, {}) or {}).get("dc", 10))
-    return {"mode": mode, "tier": tier, "dc_val": dc_val}
+  # Enabled tiers only
+  enabled = {}
+  for k, v in tiers.items():
+    if (v or {}).get("enabled", True):
+      enabled[k] = v
 
-# ---------------------------------------------------------------------------
-# Roll Helpers
-# ---------------------------------------------------------------------------
+  default_tier = (cfg.get("default_tier") or "common").lower()
+  if default_tier not in enabled and enabled:
+    default_tier = list(enabled.keys())[0]
 
-def add_guidance(expr, guidance=False):
-    return expr + ("+1d4[guidance]" if guidance else "")
+  weights = cfg.get("tier_weights") or {}
 
-def build_check_expr(skill_obj, use_adv=False, use_dis=False, bonus_expr=""):
-    """
-    Builds a vroll expression using Avrae's skill d20 helper,
-    optionally adding bonus dice (like guidance).
-    """
-    if use_adv and not use_dis:
-        expr = skill_obj.d20(base_adv=True)
-    elif use_dis and not use_adv:
-        expr = skill_obj.d20(base_adv=False)
-    else:
-        expr = skill_obj.d20()
+  resolved = resolve_tier(cmd, tier_aliases)
+  if resolved and resolved in enabled:
+    tier = resolved
+  else:
+    filt_weights = {k: v for k, v in weights.items() if k in enabled}
+    tier = pick_weighted_label(filt_weights, default_label=default_tier)
+    if tier not in enabled:
+      tier = default_tier
 
-    if bonus_expr:
-        expr += f"+{bonus_expr}"
-    return expr
+  dc_val = int((enabled.get(tier) or {}).get("dc", 10))
+  tier_label = (enabled.get(tier) or {}).get("label") or title_words(tier, tier)
 
-def roll_skill(skill_obj, adv=False, dis=False, guidance=False):
-    """
-    Rolls a skill check using Avrae's skill d20 helper and optionally adds guidance.
-    """
-    expr = build_check_expr(skill_obj, use_adv=adv, use_dis=dis, bonus_expr=("1d4[guidance]" if guidance else ""))
-    return vroll(expr)
+  return {
+    "tier": tier,
+    "tier_label": tier_label,
+    "dc_val": dc_val
+  }
 
-# ---------------------------------------------------------------------------
-# Proficiency / Expertise Helpers
-# ---------------------------------------------------------------------------
-
-def _norm(s):
-    # normalize case + apostrophe variants + whitespace + surrounding quotes
-    s = (s or "").strip().lower()
-    s = s.strip("\"").strip("'")
-    s = s.replace("’", "'")
-    s = " ".join(s.split())
-    return s
-
-def _split_csv_lower(s):
-    s = (s or "")
-    return [_norm(x) for x in s.split(",") if x.strip()]
-
-def tool_tier_from_cvars(ch, tool_name, e_cvar="eTools", p_cvar="pTools"):
-    """
-    Returns tier for a tool based on cvars:
-    2 = expertise
-    1 = proficiency
-    0 = none
-    """
-    tool = _norm(tool_name)
-    e_tools = _split_csv_lower(ch.get_cvar(e_cvar) or "")
-    p_tools = _split_csv_lower(ch.get_cvar(p_cvar) or "")
-
-    if tool in e_tools:
-        return 2
-    if tool in p_tools:
-        return 1
-    return 0
-
-def skill_tier(skill_obj):
-    """
-    Returns tier for a skill:
-    2 = expertise
-    1 = proficiency
-    0 = none
-    Works with the various Avrae skill properties.
-    """
-    prof = False
-    exp = False
-
-    try:
-        prof = bool(skill_obj.prof)
-    except "NotDefined":
-        prof = False
-    if not prof:
-        try:
-            prof = bool(skill_obj.proficient)
-        except "NotDefined":
-            prof = False
-
-    try:
-        exp = bool(skill_obj.expert)
-    except "NotDefined":
-        exp = False
-    if not exp:
-        try:
-            exp = bool(skill_obj.expertise)
-        except "NotDefined":
-            exp = False
-
-    if exp:
-        return 2
-    if prof:
-        return 1
-    return 0
-
-def choose_best_check(tool_tier, skill_tier, prefer_tools_on_tie=True):
-    if tool_tier > skill_tier:
-        return True
-    if tool_tier < skill_tier:
-        return False
-    if tool_tier > 0:
-        return True if prefer_tools_on_tie else False
-    return False
-
-# ---------------------------------------------------------------------------
-# Skill Resolver (no getattr)
-# ---------------------------------------------------------------------------
-
+# -----------------------------
+# Skill Resolver
+# -----------------------------
 def resolve_skill_or_none(ch, skill_name):
-    """
-    Resolves a character skill from a skill name.
-    Returns None if unknown (no silent fallback).
-    """
-    name = (skill_name or "").strip().lower()
-    name = name.replace(" ", "").replace("_", "")
+  name = (skill_name or "").strip().lower().replace(" ", "")
+  return getattr(ch.skills, name, None)
 
-    if name == "athletics": return ch.skills.athletics
-    if name == "acrobatics": return ch.skills.acrobatics
-    if name in ["sleightofhand", "sleightofhand"]: return ch.skills.sleightOfHand
-    if name == "stealth": return ch.skills.stealth
-    if name == "arcana": return ch.skills.arcana
-    if name == "history": return ch.skills.history
-    if name == "investigation": return ch.skills.investigation
-    if name == "nature": return ch.skills.nature
-    if name == "religion": return ch.skills.religion
-    if name in ["animalhandling", "animalhandling"]: return ch.skills.animalHandling
-    if name == "insight": return ch.skills.insight
-    if name == "medicine": return ch.skills.medicine
-    if name == "perception": return ch.skills.perception
-    if name == "survival": return ch.skills.survival
-    if name == "deception": return ch.skills.deception
-    if name == "intimidation": return ch.skills.intimidation
-    if name == "performance": return ch.skills.performance
-    if name == "persuasion": return ch.skills.persuasion
+# -----------------------------
+# Checks
+# -----------------------------
+def build_check_expr(skill_obj, adv=False, dis=False, guidance=False):
+  if adv and not dis:
+    expr = skill_obj.d20(base_adv=True)
+  elif dis and not adv:
+    expr = skill_obj.d20(base_adv=False)
+  else:
+    expr = skill_obj.d20()
 
-    return None
+  if guidance:
+    expr += "+1d4[guidance]"
+  return expr
 
-# ---------------------------------------------------------------------------
-# Extraction Helpers
-# ---------------------------------------------------------------------------
+def roll_check(ch, skill, dc, adv=False, dis=False, guidance=False):
+  s = resolve_skill_or_none(ch, skill)
+  if not s:
+    return {"roll": None, "ok": False}
 
-def _d20_core(adv=False, dis=False):
-    if adv and not dis:
-        return "2d20kh1"
-    if dis and not adv:
-        return "2d20kl1"
-    return "1d20"
+  expr = build_check_expr(s, adv, dis, guidance)
+  r = vroll(expr)
 
-def roll_tool_check_str(ch, tool_tier, adv=False, dis=False, guidance=False, ability="str"):
-    """
-    Tool check expression:
-    d20 + ability mod + PB (or + PB twice if tool_tier == 2)
-    Returns (expr, vroll_obj)
-    """
-    ability = (ability or "str").lower()
+  return {
+    "roll": r,
+    "ok": r.total >= int(dc)
+  }
 
-    mod = 0
-    try:
-        mod = int(ch.stats.get_mod(ability))
-    except:
-        try:
-            mod = int(getattr(ch.stats, ability).mod)
-        except:
-            mod = 0
+# -----------------------------
+# Rewards
+# -----------------------------
+def calc_reward_points(extracted, adv=False, dis=False, prof=False, exp=False, base_label="Tool"):
+  if not extracted:
+    return {"points": 0, "lines": ["> No resources gained."]}
 
-    pb = 0
-    try:
-        pb = int(ch.stats.prof_bonus)
-    except "NotDefined":
-        pb = 0
+  pts = 1
+  lines = [f"> 1 for {base_label}"]
 
-    expr = _d20_core(adv, dis)
-    expr += f"+{mod}[mod]"
+  if adv and not dis:
+    pts += 1
+    lines.append("> +1 for Advantage")
 
-    if tool_tier == 2:
-        expr += f"+{pb}[proficiency]+{pb}[expertise]"
-    elif tool_tier == 1:
-        expr += f"+{pb}[proficiency]"
+  if prof:
+    pts += 1
+    lines.append("> +1 for Proficiency")
 
-    expr = add_guidance(expr, guidance)
-    return expr, vroll(expr)
+  if exp:
+    pts += 1
+    lines.append("> +1 for Expertise")
 
-def roll_extraction_best(
-    ch,
-    adv=False,
-    dis=False,
-    guidance=False,
-    tool_name="mason's tools",
-    tool_ability="str",
-    skill_name="athletics",
-    prefer_tools_on_tie=True
-):
-    """
-    Chooses between a tool check and a skill check based on tier (highest wins),
-    then rolls the chosen check.
+  return {"points": pts, "lines": lines}
 
-    tool_name can be a single string or a list/tuple of acceptable tool names.
-    The highest-tier tool from the list is used automatically.
-
-    Returns a dict:
-    {
-      "use_tools": bool,
-      "tool_tier": 0|1|2,
-      "skill_tier": 0|1|2,
-      "name": str,
-      "expr": str (for tools) or "" (for skill helper),
-      "roll": vroll_obj
-    }
-    """
-    tool_list = []
-    t_type = typeof(tool_name)
-    if t_type in ["list", "tuple", "SafeList", "SafeTuple"]:
-        tool_list = [t for t in (tool_name or []) if t]
-    elif tool_name:
-        tool_list = [tool_name]
-    else:
-        tool_list = []
-
-    if not tool_list:
-        tool_list = ["mason's tools"]
-
-    best_tool = tool_list[0]
-    tool_t = tool_tier_from_cvars(ch, best_tool)
-    for cand in tool_list:
-        cand_tier = tool_tier_from_cvars(ch, cand)
-        if cand_tier > tool_t:
-            tool_t = cand_tier
-            best_tool = cand
-
-    tool_label = best_tool or "mason's tools"
-    tool_label = _title_words(tool_label, default="Tools")
-
-    skill_obj = resolve_skill_or_none(ch, skill_name)
-    if not skill_obj:
-        skill_obj = resolve_skill_or_none(ch, "athletics")
-        skill_name = "athletics"
-
-    skill_t = skill_tier(skill_obj)
-
-    use_tools = choose_best_check(tool_t, skill_t, prefer_tools_on_tie=prefer_tools_on_tie)
-
-    if use_tools:
-        expr, r = roll_tool_check_str(
-            ch,
-            tool_t,
-            adv=adv,
-            dis=dis,
-            guidance=guidance,
-            ability=tool_ability
-        )
-        return {
-            "use_tools": True,
-            "tool_tier": tool_t,
-            "skill_tier": skill_t,
-            "name": f"{tool_label} ({(tool_ability or 'str').upper()})",
-            "expr": expr,
-            "roll": r,
-        }
-
-    r = roll_skill(skill_obj, adv=adv, dis=dis, guidance=guidance)
-    return {
-        "use_tools": False,
-        "tool_tier": tool_t,
-        "skill_tier": skill_t,
-        "name": skill_name.title(),
-        "expr": "",
-        "roll": r,
-    }
-
-def extraction_flags(result):
-    """
-    Normalizes an extraction result dict into proficiency/expertise flags.
-    Returns {"has_prof": bool, "has_exp": bool}
-    """
-    if not result:
-        return {"has_prof": False, "has_exp": False}
-
-    use_tools = bool(result.get("use_tools"))
-    tool_tier = int(result.get("tool_tier", 0) or 0)
-    skill_tier = int(result.get("skill_tier", 0) or 0)
-
-    if use_tools:
-        has_prof = tool_tier >= 1
-        has_exp = tool_tier >= 2
-    else:
-        has_prof = skill_tier >= 1
-        has_exp = skill_tier >= 2
-
-    return {"has_prof": has_prof, "has_exp": has_exp}
-
-# ---------------------------------------------------------------------------
-# Reward Helpers
-# ---------------------------------------------------------------------------
-
-def calc_reward_points(extracted, adv=False, dis=False, has_prof=False, has_exp=False, base_label="Pickaxe"):
-    """
-    Implements your points model:
-    - 1 for base tool (mandatory)
-    - +1 for Proficiency
-    - +1 for Expertise
-    - +1 for Advantage
-    """
-    if not extracted:
-        return {"points": 0, "lines": ["> No resources gained."]}
-
-    pts = 1
-    lines = [f"> 1 for {base_label}"]
-
-    if adv and not dis:
-        pts += 1
-        lines.append("> +1 for Advantage")
-
-    if has_prof or has_exp:
-        pts += 1
-        lines.append("> +1 for Proficiency")
-
-    if has_exp:
-        pts += 1
-        lines.append("> +1 for Expertise")
-
-    return {"points": pts, "lines": lines}
-
-# ---------------------------------------------------------------------------
-# Find / Harvest-style Check Helpers
-# ---------------------------------------------------------------------------
-
-def roll_check(
-    ch=character(),
-    *,
-    skill="nature",
-    dc=10,
-    use_adv=False,
-    use_dis=False,
-    guidance=False,
-    bonus_expr=None,
-    label=None
-):
-    """
-    Generic check helper (works for 'find' and also for 'harvest').
-
-    - skill: string name of skill (ex: "nature", "survival", "investigation")
-    - dc: int OR vroll OR object with .total
-    """
-    s = resolve_skill_or_none(ch, skill)
-    if not s:
-        return {
-            "name": label or (skill or "Check"),
-            "expr": "",
-            "roll": None,
-            "dc": int(dc) if typeof(dc) in ["int", "float", "str"] else dc,
-            "ok": False,
-            "error": f"Unknown skill: {skill}",
-        }
-
-    # DC normalization
-    dc_total = 10
-    if typeof(dc) in ["int", "float"]:
-        dc_total = int(dc)
-    else:
-        try:
-            dc_total = int(dc.total)
-        except:
-            try:
-                dc_total = int(dc)
-            except:
-                dc_total = 10
-
-    # Bonus normalization
-    if bonus_expr is None:
-        bonus_expr = "1d4[guidance]" if guidance else ""
-
-    expr = build_check_expr(s, use_adv=use_adv, use_dis=use_dis, bonus_expr=bonus_expr)
-    r = vroll(expr)
-
-    return {
-        "name": label or (skill or "Check").title(),
-        "skill": (skill or "").lower(),
-        "expr": expr,
-        "roll": r,
-        "dc": dc_total,
-        "ok": (r.total >= dc_total),
-    }
-
-def find_check(
-    ch=character(),
-    *,
-    skill="nature",
-    dc=10,
-    use_adv=False,
-    use_dis=False,
-    guidance=False,
-    bonus_expr=None
-):
-    return roll_check(
-        ch,
-        skill=skill,
-        dc=dc,
-        use_adv=use_adv,
-        use_dis=use_dis,
-        guidance=guidance,
-        bonus_expr=bonus_expr,
-        label="Find",
-    )
-
-# ---------------------------------------------------------------------------
+# -----------------------------
 # Bag Helpers
-# ---------------------------------------------------------------------------
+# -----------------------------
+def ensure_activity_bag(ch, activity, bag_label, bag_cvar):
+  mgr = baglib.LoadedBags(ch=ch, cvar=bag_cvar)
+  bag = mgr.get_bag(bag_label) or mgr.new_bag(bag_label)
+  return mgr, bag[0]
 
-def _bag_slug(name):
-    name = (name or "gather").lower()
-    cleaned = []
-    for ch in name:
-        if ch.isalnum():
-            cleaned.append(ch)
-        elif ch in [" ", "-", "_"]:
-            cleaned.append("_")
-    slug = "".join(cleaned).strip("_")
-    return slug or "gather"
-
-def _bag_pref_key(activity):
-    key = _bag_slug(activity or "gather")
-    return f"gather_bag_{key}"
-
-def _bag_label(label, activity):
-    txt = (label or activity or "Gather").strip()
-    return txt if txt else "Gather"
-
-def load_bag_manager(ch=character(), *, bag_cvar="bags"):
-    """
-    Loads BagLib (if available) and returns the manager dict.
-    """
-    try:
-        mgr = baglib.LoadedBags(ch=ch, cvar=bag_cvar)
-        return {"ok": True, "manager": mgr}
-    except:
-        return {"ok": False, "error": "BagLib is not available."}
-
-def ensure_activity_bag(
-    ch=character(),
-    *,
-    activity="gather",
-    bag_label=None,
-    bag_cvar="bags"
-):
-    """
-    Ensures a bag exists for the activity, creating it if needed.
-    Stores the resolved bag name in a per-activity cvar.
-
-    Returns { "ok": bool, "bag_name": str, "manager": bag_manager, "error": str? }
-    """
-    label = _bag_label(bag_label, activity)
-    pref_key = _bag_pref_key(activity or label)
-
-    mgr_info = load_bag_manager(ch, bag_cvar=bag_cvar)
-    if not mgr_info.get("ok"):
-        return mgr_info
-
-    mgr = mgr_info["manager"]
-    stored_name = (ch.get_cvar(pref_key) or "").strip()
-    target = stored_name or label
-
-    bag = mgr.get_bag(target, exact_match=True)
-    if not bag:
-        bag = mgr.get_bag(target)
-    if not bag:
-        bag = mgr.new_bag(target)
-
-    if not bag:
-        return {"ok": False, "error": f"Unable to access or create bag: {target}"}
-
-    actual_name = bag[0]
-    ch.set_cvar(pref_key, actual_name)
-
-    return {"ok": True, "bag_name": actual_name, "manager": mgr}
-
-def add_rewards_to_bag(
-    ch=character(),
-    *,
-    activity="gather",
-    bag_label=None,
-    bag_cvar="bags",
-    rewards=None
-):
-    """
-    Adds reward items to the activity bag.
-    rewards: dict of { item_name: quantity }
-    """
-    rewards = rewards or {}
-    deltas = {}
-
-    try:
-        items = list(rewards.items())
-    except:
-        items = []
-
-    for name, qty in items:
-        item_name = (name or "").strip()
-        if not item_name:
-            continue
-        amount = 0
-        try:
-            amount = int(qty)
-        except:
-            continue
-        if amount <= 0:
-            continue
-        deltas[item_name] = deltas.get(item_name, 0) + amount
-
-    if not deltas:
-        return {"ok": True, "bag_name": "", "added": {}}
-
-    bag_info = ensure_activity_bag(
-        ch,
-        activity=activity,
-        bag_label=bag_label,
-        bag_cvar=bag_cvar
-    )
-
-    if not bag_info.get("ok"):
-        return bag_info
-
-    mgr = bag_info["manager"]
-    bag_name = bag_info["bag_name"]
-
-    for item_name, quantity in deltas.items():
-        mgr.modify_item(
-            item=item_name,
-            quantity=quantity,
-            bag_name=bag_name,
-            create_on_fail=False
-        )
-
-    mgr.save_bags()
-
-    return {"ok": True, "bag_name": bag_name, "added": deltas}
-
-# ---------------------------------------------------------------------------
-# Node Lookup / Search Helpers
-# ---------------------------------------------------------------------------
-
-def _str(v):
-    return (v or "").strip()
-
-def _norm_text(s):
-    s = (s or "").strip().lower()
-    s = s.replace("’", "'")
-    s = " ".join(s.split())
-    return s
-
-def node_id(node):
-    return _norm_text(node.get("id") or "")
-
-def node_name(node):
-    return _norm_text(node.get("name") or "")
-
-def node_tier(node):
-    return _norm_text(node.get("tier") or "")
-
-def get_node_by_id(data, node_id_query):
-    """
-    Exact lookup by node id (case-insensitive, whitespace-insensitive).
-    Returns node dict or None.
-    """
-    q = _norm_text(node_id_query)
-    if not q:
-        return None
-
-    for n in (data.get("nodes") or []):
-        if node_id(n) == q:
-            return n
-    return None
-
-def search_nodes(data, query, tier=None, limit=10):
-    """
-    Partial search by id or name substring.
-    Returns a list of matching nodes (up to limit).
-    """
-    q = _norm_text(query)
-    if not q:
-        return []
-
-    tier = _norm_text(tier) if tier else ""
-    out = []
-
-    for n in (data.get("nodes") or []):
-        if tier and node_tier(n) != tier:
-            continue
-
-        nid = node_id(n)
-        nname = node_name(n)
-
-        if (q in nid) or (q in nname):
-            out.append(n)
-            if len(out) >= int(limit):
-                break
-
-    return out
-
-def format_node_hit(n, tiers=None):
-    """
-    One-line display for search results.
-    """
-    tiers = tiers or {}
-    t = node_tier(n) or "unknown"
-    dc = (tiers.get(t) or {}).get("dc", "?")
-    rid = _str(n.get("id") or "unknown")
-    nm = _str(n.get("name") or rid)
-    return f"- `{rid}`: {nm} (tier {t}, DC {dc})"
+def add_rewards_to_bag(ch, activity, bag_label, bag_cvar, rewards):
+  mgr, bag_name = ensure_activity_bag(ch, activity, bag_label, bag_cvar)
+  for item, qty in rewards.items():
+    mgr.modify_item(item=item, quantity=int(qty), bag_name=bag_name, create_on_fail=False)
+  mgr.save_bags()
+  return bag_name
