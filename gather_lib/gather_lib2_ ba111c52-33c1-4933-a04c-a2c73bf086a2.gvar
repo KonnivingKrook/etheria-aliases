@@ -1,0 +1,475 @@
+# ---------------------------------------------------------------------------
+# GatherLib (Tier-Only System)
+# ---------------------------------------------------------------------------
+using(
+  baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
+)
+
+# -----------------------------
+# Text Helpers
+# -----------------------------
+def q(s):
+  return (s or "").replace("\"", "'")
+
+def title_words(s, default=""):
+  s = (s or "").strip()
+  if not s:
+    return default
+  out = []
+  for part in s.split(" "):
+    part = part.strip()
+    if not part:
+      continue
+    if len(part) == 1:
+      out.append(part.upper())
+    else:
+      out.append(part[0].upper() + part[1:].lower())
+  return " ".join(out) if out else (default or s)
+
+# -----------------------------
+# Embed Builder
+# -----------------------------
+def build_output(
+  title,
+  desc_lines=None,
+  fields=None,
+  footer=None,
+  thumb_url=None,
+  time=None,
+  color=None,
+  ch=character()
+):
+  if thumb_url is None:
+    thumb_url = ch.image
+  if color is None:
+    color = get("color")
+
+  desc = "\n".join(desc_lines or [])
+  out = [
+    f'-title "{q(title)}"',
+    f'-desc "{q(desc)}"',
+    f'-color {color}'
+  ]
+
+  if footer:
+    out.append(f'-footer "{q(footer)}"')
+
+  if thumb_url:
+    out.append(f'-thumb "{thumb_url}"')
+
+  if time is not None:
+    out.append(f'-t {int(time)}')
+
+  for n, v in (fields or []):
+    if v:
+      out.append(f'-f "{q(n)}|{q(v)}"')
+
+  return " ".join(out)
+
+# -----------------------------
+# Tier Selection
+# -----------------------------
+def resolve_tier(cmd, tier_aliases=None):
+  cmd = (cmd or "").lower().strip()
+  tier_aliases = tier_aliases or {}
+  return (tier_aliases.get(cmd, cmd) or "").lower().strip()
+
+def pick_weighted_label(weight_map, default_label="common"):
+  if not weight_map:
+    return default_label
+
+  labels = []
+  weights = []
+
+  for lbl, w in weight_map.items():
+    lbl = (lbl or "").strip().lower()
+    try:
+      w = int(w)
+    except:
+      continue
+    if lbl and w > 0:
+      labels.append(lbl)
+      weights.append(w)
+
+  if not labels:
+    return default_label
+
+  try:
+    return randchoices(labels, weights=weights)[0]
+  except:
+    return default_label
+
+def select_tier(data, cmd=None):
+  tiers = data.get("tiers", {}) or {}
+  cfg = data.get("config", {}) or {}
+  tier_aliases = data.get("tier_aliases", {}) or {}
+
+  enabled = {}
+  for k, v in tiers.items():
+    if (v or {}).get("enabled", True):
+      enabled[k] = v
+
+  default_tier = (cfg.get("default_tier") or "common").lower()
+  if default_tier not in enabled and enabled:
+    default_tier = list(enabled.keys())[0]
+
+  weights = cfg.get("tier_weights") or {}
+
+  resolved = resolve_tier(cmd, tier_aliases)
+  if resolved and resolved in enabled:
+    tier = resolved
+    mode = "tier"
+  else:
+    filt_weights = {k: v for k, v in weights.items() if k in enabled}
+    tier = pick_weighted_label(filt_weights, default_label=default_tier)
+    if tier not in enabled:
+      tier = default_tier
+    mode = "all"
+
+  dc_val = int((enabled.get(tier) or {}).get("dc", 10))
+  tier_label = (enabled.get(tier) or {}).get("label") or title_words(tier, tier)
+
+  return {
+    "mode": mode,
+    "tier": tier,
+    "tier_label": tier_label,
+    "dc_val": dc_val
+  }
+
+# -----------------------------
+# Skill Resolver (NO getattr)
+# -----------------------------
+def resolve_skill_or_none(ch, skill_name):
+  name = (skill_name or "").strip().lower()
+  name = name.replace(" ", "").replace("_", "")
+
+  if name == "athletics": return ch.skills.athletics
+  if name == "acrobatics": return ch.skills.acrobatics
+  if name == "sleightofhand": return ch.skills.sleightOfHand
+  if name == "stealth": return ch.skills.stealth
+  if name == "arcana": return ch.skills.arcana
+  if name == "history": return ch.skills.history
+  if name == "investigation": return ch.skills.investigation
+  if name == "nature": return ch.skills.nature
+  if name == "religion": return ch.skills.religion
+  if name == "animalhandling": return ch.skills.animalHandling
+  if name == "insight": return ch.skills.insight
+  if name == "medicine": return ch.skills.medicine
+  if name == "perception": return ch.skills.perception
+  if name == "survival": return ch.skills.survival
+  if name == "deception": return ch.skills.deception
+  if name == "intimidation": return ch.skills.intimidation
+  if name == "performance": return ch.skills.performance
+  if name == "persuasion": return ch.skills.persuasion
+
+  return None
+
+# -----------------------------
+# Checks (NEW)
+# -----------------------------
+def build_check_expr(skill_obj, adv=False, dis=False, guidance=False, bonus_expr=""):
+  if adv and not dis:
+    expr = skill_obj.d20(base_adv=True)
+  elif dis and not adv:
+    expr = skill_obj.d20(base_adv=False)
+  else:
+    expr = skill_obj.d20()
+
+  if guidance:
+    expr += "+1d4[guidance]"
+
+  if bonus_expr:
+    expr += f"+{bonus_expr}[bonus]"
+
+  return expr
+
+def roll_check(ch, *, skill, dc, adv=False, dis=False, guidance=False, bonus_expr=""):
+  s = resolve_skill_or_none(ch, skill)
+  if not s:
+    return {"name": skill.title(), "roll": None, "ok": False, "error": f"Unknown skill: {skill}"}
+
+  expr = build_check_expr(s, adv, dis, guidance, bonus_expr)
+  r = vroll(expr)
+
+  return {
+    "name": skill.title(),
+    "roll": r,
+    "ok": r.total >= int(dc),
+    "expr": expr,
+    "dc": int(dc)
+  }
+
+# -----------------------------
+# Proficiency / Expertise Helpers
+# -----------------------------
+def _norm(s):
+  s = (s or "").strip().lower()
+  s = s.strip("\"").strip("'")
+  s = s.replace("’", "'")
+  s = " ".join(s.split())
+  return s
+
+def _split_csv_lower(s):
+  s = (s or "")
+  return [_norm(x) for x in s.split(",") if x.strip()]
+
+def tool_tier_from_cvars(ch, tool_name, e_cvar="eTools", p_cvar="pTools"):
+  tool = _norm(tool_name)
+  e_tools = _split_csv_lower(ch.get_cvar(e_cvar) or "")
+  p_tools = _split_csv_lower(ch.get_cvar(p_cvar) or "")
+  if tool in e_tools: return 2
+  if tool in p_tools: return 1
+  return 0
+
+def skill_tier(skill_obj):
+  prof = False
+  exp = False
+
+  try:
+    prof = bool(skill_obj.prof)
+  except "NotDefined":
+    prof = False
+  if not prof:
+    try:
+      prof = bool(skill_obj.proficient)
+    except "NotDefined":
+      prof = False
+
+  try:
+    exp = bool(skill_obj.expert)
+  except "NotDefined":
+    exp = False
+  if not exp:
+    try:
+      exp = bool(skill_obj.expertise)
+    except "NotDefined":
+      exp = False
+
+  if exp: return 2
+  if prof: return 1
+  return 0
+
+def choose_best_check(tool_tier, skill_tier_val, prefer_tools_on_tie=True):
+  if tool_tier > skill_tier_val: return True
+  if tool_tier < skill_tier_val: return False
+  if tool_tier > 0: return True if prefer_tools_on_tie else False
+  return False
+
+def _d20_core(adv=False, dis=False):
+  if adv and not dis: return "2d20kh1"
+  if dis and not adv: return "2d20kl1"
+  return "1d20"
+
+def roll_tool_check_str(ch, tool_tier, adv=False, dis=False, guidance=False, bonus_expr="", ability="str"):
+  ability = (ability or "str").lower()
+
+  mod = 0
+  try:
+    mod = int(ch.stats.get_mod(ability))
+  except:
+    try:
+      mod = int(getattr(ch.stats, ability).mod)
+    except:
+      mod = 0
+
+  pb = 0
+  try:
+    pb = int(ch.stats.prof_bonus)
+  except "NotDefined":
+    pb = 0
+
+  expr = _d20_core(adv, dis) + f"+{mod}[mod]"
+
+  if tool_tier == 2:
+    expr += f"+{pb}[proficiency]+{pb}[expertise]"
+  elif tool_tier == 1:
+    expr += f"+{pb}[proficiency]"
+
+  if guidance:
+    expr += "+1d4[guidance]"
+
+  if bonus_expr:
+    expr += f"+{bonus_expr}[bonus]"
+
+  return expr, vroll(expr)
+
+def roll_extraction_best(
+  ch,
+  adv=False,
+  dis=False,
+  guidance=False,
+  bonus_expr="",
+  tool_name="mason's tools",
+  tool_ability="str",
+  skill_name="athletics",
+  prefer_tools_on_tie=True
+):
+  tool_list = []
+  t_type = typeof(tool_name)
+  if t_type in ["list", "tuple", "SafeList", "SafeTuple"]:
+    tool_list = [t for t in (tool_name or []) if t]
+  elif tool_name:
+    tool_list = [tool_name]
+  if not tool_list:
+    tool_list = ["mason's tools"]
+
+  best_tool = tool_list[0]
+  tool_t = tool_tier_from_cvars(ch, best_tool)
+  for cand in tool_list:
+    cand_t = tool_tier_from_cvars(ch, cand)
+    if cand_t > tool_t:
+      tool_t = cand_t
+      best_tool = cand
+
+  skill_obj = resolve_skill_or_none(ch, skill_name) or resolve_skill_or_none(ch, "athletics")
+  if not skill_obj:
+    skill_obj = ch.skills.athletics
+    skill_name = "athletics"
+
+  skill_t = skill_tier(skill_obj)
+  use_tools = choose_best_check(tool_t, skill_t, prefer_tools_on_tie=prefer_tools_on_tie)
+
+  if use_tools:
+    expr, r = roll_tool_check_str(
+      ch,
+      tool_t,
+      adv=adv,
+      dis=dis,
+      guidance=guidance,
+      bonus_expr=bonus_expr,
+      ability=tool_ability
+    )
+    return {
+      "use_tools": True,
+      "tool_tier": tool_t,
+      "skill_tier": skill_t,
+      "name": f"{title_words(best_tool,'Tools')} ({(tool_ability or 'str').upper()})",
+      "expr": expr,
+      "roll": r
+    }
+
+  expr = build_check_expr(skill_obj, adv=adv, dis=dis, guidance=guidance, bonus_expr=bonus_expr)
+  r = vroll(expr)
+  return {
+    "use_tools": False,
+    "tool_tier": tool_t,
+    "skill_tier": skill_t,
+    "name": skill_name.title(),
+    "expr": expr,
+    "roll": r
+  }
+
+def extraction_flags(result):
+  if not result:
+    return {"prof": False, "exp": False}
+
+  use_tools = bool(result.get("use_tools"))
+  tool_t = int(result.get("tool_tier", 0) or 0)
+  skill_t = int(result.get("skill_tier", 0) or 0)
+
+  tier = tool_t if use_tools else skill_t
+  return {"prof": tier >= 1, "exp": tier >= 2}
+
+# -----------------------------
+# Rewards (KEEP v1 signature)
+# -----------------------------
+def calc_reward_points(extracted, adv=False, dis=False, prof=False, exp=False, base_label="Tool"):
+  if not extracted:
+    return {"points": 0, "lines": ["> No resources gained."]}
+
+  pts = 1
+  lines = [f"> 1 for {base_label}"]
+
+  if adv and not dis:
+    pts += 1
+    lines.append("> +1 for Advantage")
+
+  if prof:
+    pts += 1
+    lines.append("> +1 for Proficiency")
+
+  if exp:
+    pts += 1
+    lines.append("> +1 for Expertise")
+
+  return {"points": pts, "lines": lines}
+
+# -----------------------------
+# Bag Helpers (FIXED signature + return shape)
+# -----------------------------
+def _bag_slug(name):
+  name = (name or "gather").lower()
+  cleaned = []
+  for chx in name:
+    if chx.isalnum():
+      cleaned.append(chx)
+    elif chx in [" ", "-", "_"]:
+      cleaned.append("_")
+  slug = "".join(cleaned).strip("_")
+  return slug or "gather"
+
+def _bag_pref_key(activity):
+  return f"gather_bag_{_bag_slug(activity or 'gather')}"
+
+def ensure_activity_bag(ch=character(), *, activity="gather", bag_label=None, bag_cvar="bags"):
+  label = (bag_label or activity or "Gather").strip() or "Gather"
+  pref_key = _bag_pref_key(activity or label)
+
+  try:
+    mgr = baglib.LoadedBags(ch=ch, cvar=bag_cvar)
+  except:
+    return {"ok": False, "error": "BagLib is not available."}
+
+  stored_name = (ch.get_cvar(pref_key) or "").strip()
+  target = stored_name or label
+
+  bag = mgr.get_bag(target, exact_match=True)
+  if not bag:
+    bag = mgr.get_bag(target)
+  if not bag:
+    bag = mgr.new_bag(target)
+
+  if not bag:
+    return {"ok": False, "error": f"Unable to access or create bag: {target}"}
+
+  actual_name = bag[0]
+  ch.set_cvar(pref_key, actual_name)
+
+  return {"ok": True, "bag_name": actual_name, "manager": mgr}
+
+def add_rewards_to_bag(ch=character(), *, activity="gather", bag_label=None, bag_cvar="bags", rewards=None):
+  rewards = rewards or {}
+  deltas = {}
+
+  try:
+    items = list(rewards.items())
+  except:
+    items = []
+
+  for name, qty in items:
+    item_name = (name or "").strip()
+    if not item_name:
+      continue
+    try:
+      amount = int(qty)
+    except:
+      continue
+    if amount <= 0:
+      continue
+    deltas[item_name] = deltas.get(item_name, 0) + amount
+
+  if not deltas:
+    return {"ok": True, "bag_name": "", "added": {}}
+
+  bag_info = ensure_activity_bag(ch, activity=activity, bag_label=bag_label, bag_cvar=bag_cvar)
+  if not bag_info.get("ok"):
+    return bag_info
+
+  mgr = bag_info["manager"]
+  bag_name = bag_info["bag_name"]
+
+  for item_name, quantity in deltas.items():
+    mgr.modify_item(item=item_name, quantity=quantity, bag_name=bag_name, create_on_fail=False)
+
+  mgr.save_bags()
+  return {"ok": True, "bag_name": bag_name, "added": deltas}
