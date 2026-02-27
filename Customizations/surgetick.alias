@@ -1,0 +1,45 @@
+embed
+
+{{gvar, surgeRoll, Combat, chanceRoll, tides, tidesCC, lookup = load_json(get_gvar('9274bf9a-f3d2-407e-9723-0a8901d04003')), vroll('1d100'), combat(), vroll('1d20'), '&1&' in 'tidesroll', "Tides of Chaos", int("&1&") if "&1&".isdigit() else 0}}
+{{surge = gvar[ceil(lookup/2 or surgeRoll.total/2)-1]}}
+{{surgeTrigger = character().get_cc("Surge Trigger") if character().cc_exists("Surge Trigger") else 1}}
+{{currentTrigger = surgeTrigger}}
+{{surgeWarning = "_The weave **crackles**. Reality bends. Something **wants out**._" if currentTrigger >= 8 else "_You feel a thrum beneath your thoughts — magic growing restless._" if currentTrigger >= 4 else "_Something stirs — faint, like static before a storm._" if currentTrigger >= 2 else ""}}
+
+
+
+{{usedSlots = [x for x in range(1, 10) if character().spellbook.get_slots(x) < character().spellbook.get_max_slots(x)]}}
+
+{{f"-desc '*No Wild Surge*' -f 'Surge Trigger Incremented|New target: {surgeTrigger + 1}|inline'" if not lookup and chanceRoll.total > surgeTrigger and not tides else f" -f '{f'Looking up roll: {lookup}' if lookup else surgeRoll}{f' - {tidesCC}' if tides and character().cc_exists(tidesCC) else ''} | {surge.desc}'"}}
+{{f" -f 'The Weave Whispers|{surgeWarning}'" if surgeWarning and not (chanceRoll.total <= currentTrigger or tides) else ""}}
+
+{{Roll = vroll(surge.roll) if surge.type == 'roll' or surge.type == 'health' else 0 }}
+
+{{character().modify_hp(Roll.total, overflow=False) if not lookup and surge.type == 'health' and (chanceRoll.total <= surgeTrigger or tides) else ''}}
+
+{{character().spellbook.set_slots(usedSlots[0], character().spellbook.get_slots(usedSlots[0]) + 1) if not lookup and surge.type == 'slots' and usedSlots and (chanceRoll.total <= surgeTrigger or tides) else ''}}
+
+{{character().set_cc('Sorcery Points', character().get_cc_max('Sorcery Points')) if not lookup and surge.type == 'cc' and (chanceRoll.total <= surgeTrigger or tides) else ''}}
+
+{{Combat.me.add_effect(name=surge.effect.name, duration=surge.effect.duration, passive_effects=surge.effect.passive_effects) if not lookup and surge.type == 'effect' and Combat and Combat.me and (chanceRoll.total <= surgeTrigger or tides) else ''}}
+
+{{character().mod_cc("Surge Trigger", 1) if not lookup and chanceRoll.total > currentTrigger and not tides else ''}}
+{{character().set_cc("Surge Trigger", 1) if not lookup and (chanceRoll.total <= currentTrigger or tides) else ''}}
+
+{{'' if chanceRoll.total > surgeTrigger and not tides else (
+  f" -f 'Roll|{Roll}'" if surge.type.lower() == 'roll'
+  else f" -f 'Health gained|{Roll}\n{character().hp_str()}'" if surge.type.lower() == 'health'
+  else f" -f 'Regain Slot|{character().spellbook.slots_str(usedSlots[0]) if usedSlots else '*None*'}'" if surge.type.lower() == 'slots'
+  else f" -f 'Sorcerer Points|{character().cc_str('Sorcery Points')}'" if surge.type.lower() == 'cc'
+  else f" -f 'Gained Effect|Name: {surge.effect.name}\nDuration: {surge.effect.duration} rounds'" if surge.type.lower() == 'effect'
+  else ''
+)}}
+
+-title "Wild Magic Surge {{'| ' + str(chanceRoll) if not (tides or lookup) else ''}}"
+
+{{not character().cc_exists(tidesCC) or character().mod_cc(tidesCC, 1) or f" -f '{tidesCC}|Recharged'" if not lookup and tides else ''}}
+
+-color <color>
+-thumb <image>
+
+-footer "{{ctx.prefix}}wmsurge - Roll for chance | {{ctx.prefix}}wmsurge [tide|roll] - Force a roll | {{ctx.prefix}}wmsurge [#] - Lookup a roll"

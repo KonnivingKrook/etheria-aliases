@@ -1,0 +1,180 @@
+{
+  "version": 8,
+  "description": "Mining (tier-only). No named nodes; tier chosen by command or tier_weights. Rewards are generic tier-based ore.",
+  "tiers": {
+    "basic": { "dc": 11, "label": "Basic", "enabled": true },
+    "common": { "dc": 13, "label": "Common", "enabled": true },
+    "uncommon": { "dc": 16, "label": "Uncommon", "enabled": true },
+    "rare": { "dc": 21, "label": "Rare", "enabled": true },
+    "very_rare": { "dc": 24, "label": "Very Rare", "enabled": true },
+    "legendary": { "dc": 26, "label": "Legendary", "enabled": false }
+  },
+  "tier_aliases": {
+    "b": "basic",
+    "c": "common",
+    "u": "uncommon",
+    "r": "rare",
+    "v": "very_rare",
+    "l": "legendary",
+    "basic": "basic",
+    "common": "common",
+    "uncommon": "uncommon",
+    "rare": "rare",
+    "very_rare": "very_rare",
+    "legendary": "legendary"
+  },
+  "config": {
+    "cooldown": 7200,
+    "tool_names": ["mason's tools"],
+    "tool_ability": "str",
+    "harvest_skill": "athletics",
+    "find_skill_default": "nature",
+    "tier_weights": {
+      "basic": 80,
+      "common": 60,
+      "uncommon": 25,
+      "rare": 8,
+      "very_rare": 3,
+      "legendary": 1
+    },
+    "default_tier": "common",
+    "bag_label": "Mining",
+    "reward_label": "Pickaxe",
+    "reward_item_template": "{tier_label} Ore",
+    "found_template": "You find a workable **{tier_label}** vein in the rock.",
+    "pass_template": "You manage to extract usable material from the vein.",
+    "fail_template": "The vein crumbles and you can't recover anything usable."
+  },
+  "nodes": [
+    {
+      "id": "stone",
+      "name": "Stone",
+      "tier": "basic",
+      "rarity": 70,
+      "category": "ore",
+      "found": "You uncover a workable seam of **Stone**.",
+      "pass": "You pry free plenty of usable stone.",
+      "fail": "The vein crumbles and you can't recover anything usable."
+    },
+    {
+      "id": "coal",
+      "name": "Coal",
+      "tier": "basic",
+      "rarity": 55,
+      "category": "ore",
+      "found": "You come across a vein of **Coal**.",
+      "pass": "You chip away the seam and bag the coal.",
+      "fail": "Despite your effort, the coal shatters into worthless dust."
+    },
+    {
+      "id": "tin",
+      "name": "Tin",
+      "tier": "basic",
+      "rarity": 40,
+      "category": "ore",
+      "found": "You discover a streak of **Tin** ore.",
+      "pass": "Careful strikes free enough tin to work with.",
+      "fail": "The lode collapses before you can extract anything useful."
+    },
+    {
+      "id": "granite",
+      "name": "Granite",
+      "tier": "basic",
+      "rarity": 30,
+      "category": "ore",
+      "found": "A dense pocket of **Granite** resists your blows.",
+      "pass": "You manage to split the block into portable chunks.",
+      "fail": "The granite holds fast and dulls your tools."
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "tier": "common",
+      "rarity": 45,
+      "category": "ore",
+      "found": "You uncover a rich seam of **Iron**.",
+      "pass": "You make short work of the iron vein.",
+      "fail": "The seam fractures and you lose the ore."
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "tier": "common",
+      "rarity": 35,
+      "category": "ore",
+      "found": "Bright traces of **Copper** catch your eye.",
+      "pass": "You peel the copper vein free of the rock.",
+      "fail": "The copper flakes apart before you can harvest it."
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "tier": "uncommon",
+      "rarity": 22,
+      "category": "ore",
+      "found": "You spot the gleam of **Silver** deep in the wall.",
+      "pass": "Patience pays off as you extract the silver vein.",
+      "fail": "The wall collapses and the silver slips away."
+    },
+    {
+      "id": "lead",
+      "name": "Lead",
+      "tier": "uncommon",
+      "rarity": 18,
+      "category": "ore",
+      "found": "A dull seam of **Lead** winds through the stone.",
+      "pass": "You pry the heavy metal free chunk by chunk.",
+      "fail": "The lead vein smears apart and you can't recover it."
+    },
+    {
+      "id": "mithril",
+      "name": "Mithril",
+      "tier": "rare",
+      "rarity": 10,
+      "category": "ore",
+      "found": "A silvery-blue sheen betrays **Mithril**.",
+      "pass": "Careful strokes free the mithril without scarring it.",
+      "fail": "The magical metal slips back into the stone."
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "tier": "rare",
+      "rarity": 8,
+      "category": "ore",
+      "found": "You spot the unmistakable glint of **Gold**.",
+      "pass": "You dislodge the ore and collect several nuggets.",
+      "fail": "The surrounding rock collapses, burying the gold."
+    },
+    {
+      "id": "adamantine",
+      "name": "Adamantine",
+      "tier": "very_rare",
+      "rarity": 4,
+      "category": "ore",
+      "found": "An almost indestructible seam of **Adamantine** resists all tools.",
+      "pass": "After great effort, you pry free a shard of adamantine.",
+      "fail": "The vein shrugs off every blow and remains untouched."
+    },
+    {
+      "id": "platinum",
+      "name": "Platinum",
+      "tier": "very_rare",
+      "rarity": 3,
+      "category": "ore",
+      "found": "A pale shimmer reveals **Platinum** beneath the rubble.",
+      "pass": "You chisel out the platinum vein intact.",
+      "fail": "The platinum slides deeper into the strata before you can reach it."
+    },
+    {
+      "id": "mizzium",
+      "name": "Mizzium",
+      "tier": "very_rare",
+      "rarity": 2,
+      "category": "ore",
+      "found": "Volatile sparks dance across a jagged vein of **Mizzium**.",
+      "pass": "You stabilize the magical ore long enough to harvest it.",
+      "fail": "The mizzium destabilizes and the vein vaporizes."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+	
+testI
+
+<drac2>
+args = argparse(&ARGS&)
+target = args.get('t')
+
+</drac2>
+My target is {target}

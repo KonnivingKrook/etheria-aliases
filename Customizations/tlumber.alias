@@ -1,0 +1,185 @@
+embed
+<drac2>
+ch = character()
+data = load_json(get_gvar("db1be665-d0e6-42b0-8ce8-a3439c0a3fc7"))
+using(
+  cdlib="cc413a98-489e-49f9-aac2-907993761792",
+  gather="6d152ad4-045e-4e48-92c4-820929143039",
+  baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
+)
+
+cd = cdlib.Cooldowns()
+FOOTER = "!lumber help | @konnivingkrook#0"
+
+cfg = (data.get("config") or {})
+
+def respond(title, desc=None, fields=None):
+    return gather.build_output(title, desc or [], fields or [], footer=FOOTER, ch=ch)
+
+# Default 3 hours (override via cfg)
+tier_defaults = {"common": 70, "uncommon": 25, "rare": 5}
+cooldown = int(cfg.get("cooldown", 10800))
+
+# Tier weights only matter when not targeting a tier explicitly
+tier_weights = (cfg.get("tier_weights") or tier_defaults)
+default_tier = (cfg.get("default_tier") or "common").lower()
+
+# Shared logic
+tool_options = cfg.get("tool_names") or ["woodcarver's tools"]
+tool_type = typeof(tool_options)
+if tool_type == "str":
+    tool_options = [tool_options]
+elif tool_type in ["list", "tuple", "SafeList", "SafeTuple"]:
+    tool_options = [t for t in (tool_options or []) if t]
+else:
+    tool_options = [tool_options] if tool_options else []
+tool_options = [t for t in (tool_options or []) if t]
+if not tool_options:
+    tool_options = ["woodcarver's tools"]
+tool_ability = (cfg.get("tool_ability") or "str")
+harvest_skill = (cfg.get("harvest_skill") or "athletics")
+find_skill_default = (cfg.get("find_skill_default") or "survival")
+reward_label = (cfg.get("reward_label") or "Axe")
+bag_label = (cfg.get("bag_label") or "Lumber")
+bag_cvar = (cfg.get("bag_cvar") or "bags")
+
+args = [a.lower() for a in &ARGS&]
+cmd = args[0] if args else ""
+
+use_adv = "adv" in args
+use_dis = "dis" in args
+use_guidance = ("guidance" in args) or ("g" in args)
+
+# Find skill selection: default Survival, allow Nature via args
+find_skill = find_skill_default.lower()
+if ("nature" in args) or ("nat" in args):
+    find_skill = "nature"
+elif ("survival" in args) or ("surv" in args):
+    find_skill = "survival"
+
+# Tier targeting: allow common/uncommon/rare as first arg
+excluded = ["help", "?", "nat", "nature", "surv", "survival", "adv", "dis", "g", "guidance"]
+tier_cmd = cmd if (cmd and cmd not in excluded) else ""
+
+tiers = (data.get("tiers") or {})
+
+# ---- help ----
+if cmd in ["help", "?"]:
+    tier_names = ", ".join(list(tiers.keys())) if tiers else "none"
+    lines = []
+    lines.append("**Lumbering**")
+    lines.append("Pick a tier, find a workable tree, then harvest usable lumber.")
+    lines.append("")
+    lines.append("**Usage**")
+    lines.append("- `!lumber` (random tier)")
+    lines.append(f"- `!lumber <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- Optional: `nat` or `surv` to choose the find skill")
+    lines.append("- Optional: `adv` or `dis`")
+    lines.append("- Optional: `guidance` / `g`")
+    lines.append("")
+    lines.append("**Bags**")
+    lines.append(f"- Harvest goes into your `{bag_label}` bag (auto-created if needed).")
+    lines.append("")
+    lines.append("**Rewards**")
+    lines.append("On success: `(n) [tier]`")
+    lines.append("")
+    lines.append(f"**Cooldown:** {cd.format_remaining(cooldown)} per attempt")
+    return respond("Lumbering Help", lines)
+
+# ---- Cooldown ----
+gate = cd.gate("lumber", cooldown, set_on_pass=False)
+if not gate["ok"]:
+    return respond("Lumbering", [f"Available: {cd.ts(gate['expiry'], 'R')}"])
+
+cd.set_timer("lumber", cooldown)
+cd.save()
+
+# ---- Select tier (targeted or weighted random) ----
+sel = gather.select_tier(data, tier_cmd, weights=tier_weights, default_tier=default_tier)
+tier = sel["tier"]
+dc_val = sel["dc_val"]
+
+# ---- Find check (uses tier DC) ----
+find = gather.find_check(
+    ch,
+    skill=find_skill,
+    dc=dc_val,
+    use_adv=use_adv,
+    use_dis=use_dis,
+    guidance=use_guidance
+)
+
+if not find["ok"]:
+    desc = []
+    desc.append("You spend time scouting for anything worth felling...")
+    desc.append("")
+    desc.append(f"**Tier:** {tier} (DC {dc_val})")
+    desc.append("No workable tree found today.")
+    fields = [
+        (f"Find ({find_skill.title()})", find.get("error") or str(find.get("roll"))),
+        ("Rewards", "0\nNo resources gained."),
+    ]
+    return respond("Lumbering", desc, fields)
+
+# ---- Harvest check (tools vs skill, same tier DC) ----
+ex = gather.roll_extraction_best(
+    ch,
+    adv=use_adv,
+    dis=use_dis,
+    guidance=use_guidance,
+    tool_name=tool_options,
+    tool_ability=tool_ability,
+    skill_name=harvest_skill,
+    prefer_tools_on_tie=True
+)
+
+harvest_roll = ex["roll"]
+harvest_ok = harvest_roll.total >= dc_val
+flags = gather.extraction_flags(ex)
+
+reward = gather.calc_reward_points(
+    harvest_ok,
+    adv=use_adv,
+    dis=use_dis,
+    has_prof=flags["has_prof"],
+    has_exp=flags["has_exp"],
+    base_label=reward_label
+)
+
+bag_field = ""
+resource_name = f"{tier.title()} Lumber"
+if harvest_ok and reward["points"] > 0:
+    bag_result = gather.add_rewards_to_bag(
+        ch,
+        activity="lumber",
+        bag_label=bag_label,
+        bag_cvar=bag_cvar,
+        rewards={resource_name: reward["points"]}
+    )
+    if bag_result.get("ok") and bag_result.get("bag_name"):
+        bag_field = f"{bag_result['bag_name']}: +{reward['points']} {resource_name}"
+    else:
+        bag_field = bag_result.get("error") or "Unable to record lumber."
+
+# ---- Output ----
+desc = [
+    "You mark a promising stand of trees and get to work.",
+    "",
+    f"**Tier:** {tier} (DC {dc_val})",
+]
+
+fields = [
+    (f"Find ({find_skill.title()})", str(find["roll"])),
+    (ex["name"], str(harvest_roll)),
+]
+
+if harvest_ok:
+    fields.append(("Rewards", f"{reward['points']} {tier.title()} Wood\n" + "\n".join(reward["lines"])) )
+else:
+    fields.append(("Rewards", "0\nNo resources gained."))
+
+if bag_field:
+    fields.append(("Bag", bag_field))
+
+return respond("Lumbering", desc, fields)
+</drac2>

@@ -18,8 +18,8 @@ tier_aliases = data.get("tier_aliases") or {}
 # -----------------------------
 # Defaults / Config
 # -----------------------------
-cooldown = int(cfg.get("cooldown", 7200))
-# cooldown = int(3)
+# cooldown = int(cfg.get("cooldown", 7200))
+cooldown = int(3)
 tool_options = cfg.get("tool_names") or ["mason's tools"]
 tool_type = typeof(tool_options)
 if tool_type == "str":

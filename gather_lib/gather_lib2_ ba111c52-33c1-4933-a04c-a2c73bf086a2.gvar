@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# GatherLib (Tier-Only System)
+# GatherLib
 # ---------------------------------------------------------------------------
 using(
   baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
@@ -137,7 +137,44 @@ def select_tier(data, cmd=None):
   }
 
 # -----------------------------
-# Skill Resolver (NO getattr)
+# Node Selection
+# -----------------------------
+def _norm_tier_name(value):
+  return (value or "").strip().lower()
+
+def select_node_for_tier(data, tier=None):
+  nodes = data.get("nodes") or []
+  target = _norm_tier_name(tier)
+
+  pool = []
+  weights = []
+
+  for node in nodes:
+    node_tier = _norm_tier_name((node or {}).get("tier"))
+    if target and node_tier != target:
+      continue
+
+    try:
+      weight = int((node or {}).get("rarity", 1))
+    except:
+      weight = 1
+
+    if weight <= 0:
+      continue
+
+    pool.append(node)
+    weights.append(weight)
+
+  if not pool:
+    return None
+
+  try:
+    return randchoices(pool, weights=weights)[0]
+  except:
+    return pool[0]
+
+# -----------------------------
+# Skill Resolver
 # -----------------------------
 def resolve_skill_or_none(ch, skill_name):
   name = (skill_name or "").strip().lower()
@@ -165,7 +202,7 @@ def resolve_skill_or_none(ch, skill_name):
   return None
 
 # -----------------------------
-# Checks (NEW)
+# Checks
 # -----------------------------
 def build_check_expr(skill_obj, adv=False, dis=False, guidance=False, bonus_expr=""):
   if adv and not dis:
@@ -395,7 +432,7 @@ def calc_reward_points(extracted, adv=False, dis=False, prof=False, exp=False, b
   return {"points": pts, "lines": lines}
 
 # -----------------------------
-# Bag Helpers (FIXED signature + return shape)
+# Bag Helpers
 # -----------------------------
 def _bag_slug(name):
   name = (name or "gather").lower()
