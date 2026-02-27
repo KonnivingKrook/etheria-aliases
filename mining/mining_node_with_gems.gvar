@@ -1,0 +1,331 @@
+{
+  "version": 7,
+  "description": "Mining nodes. D&D-standard rarity tiers. Flat DC by tier. Random selection uses rarity weight (higher = more common). Adamantine removed. Mithril promoted to legendary. Added magisteel and titanium as mid/high-tier magical metals.",
+  "config": {
+    "cooldown": 7200,
+    "tool_names": ["mason's tools"],
+    "tool_ability": "str",
+    "harvest_skill": "athletics",
+    "find_skill_default": "nature",
+    "default_tier": "common",
+    "bag_label": "Mining"
+  },
+  "tiers": {
+    "common": { "dc": 11 },
+    "uncommon": { "dc": 16 },
+    "rare": { "dc": 21 },
+    "legendary": { "dc": 26 }
+  },
+  "tier_aliases": {
+    "c": "common",
+    "u": "uncommon",
+    "r": "rare",
+    "l": "legendary",
+    "common": "common",
+    "uncommon": "uncommon",
+    "rare": "rare",
+    "legendary": "legendary"
+  },
+  "nodes": [
+    {
+      "id": "stone",
+      "name": "Stone",
+      "tier": "common",
+      "rarity": 60,
+      "category": "ore",
+      "found": "You come across **Stone**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the stone out!"
+    },
+    {
+      "id": "coal",
+      "name": "Coal",
+      "tier": "common",
+      "rarity": 60,
+      "category": "ore",
+      "found": "You come across a vein of **Coal**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "tier": "common",
+      "rarity": 48,
+      "category": "ore",
+      "found": "You come across a node of **Iron**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "tier": "common",
+      "rarity": 40,
+      "category": "ore",
+      "found": "And you come across a vein of **Copper**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "tin",
+      "name": "Tin",
+      "tier": "common",
+      "rarity": 32,
+      "category": "ore",
+      "found": "You come across a vein of **Tin**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "lead",
+      "name": "Lead",
+      "tier": "common",
+      "rarity": 24,
+      "category": "ore",
+      "found": "You come across a vein of **Lead**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Despite your best efforts you can't seem to get the ore out!"
+    },
+    {
+      "id": "garnet",
+      "name": "Garnet",
+      "tier": "uncommon",
+      "rarity": 10,
+      "category": "gem",
+      "found": "You notice a deep red sparkle in the rock... **Garnet**!",
+      "pass": "With careful chiseling, you free the garnet intact.",
+      "fail": "The gemstone cracks under pressure and crumbles."
+    },
+    {
+      "id": "peridot",
+      "name": "Peridot",
+      "tier": "uncommon",
+      "rarity": 8,
+      "category": "gem",
+      "found": "A vibrant green glint catches your eye... **Peridot**!",
+      "pass": "You manage to extract the peridot without damaging it.",
+      "fail": "The gem fractures as the stone shifts around it."
+    },
+    {
+      "id": "aquamarine",
+      "name": "Aquamarine",
+      "tier": "uncommon",
+      "rarity": 6,
+      "category": "gem",
+      "found": "A cool blue crystal rests within the stone... **Aquamarine**.",
+      "pass": "You carefully pry the aquamarine free.",
+      "fail": "The crystal shatters into useless shards."
+    },
+    {
+      "id": "opal",
+      "name": "Opal",
+      "tier": "uncommon",
+      "rarity": 6,
+      "category": "gem",
+      "found": "Iridescent colors shimmer from within the rock... **Opal**!",
+      "pass": "You delicately extract the opal.",
+      "fail": "The opal dulls and cracks as it is freed."
+    },
+    {
+      "id": "granite",
+      "name": "Granite",
+      "tier": "uncommon",
+      "rarity": 20,
+      "category": "ore",
+      "found": "You come across a vein of **Granite**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the granite is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "tier": "uncommon",
+      "rarity": 12,
+      "category": "ore",
+      "found": "You come across a vein of **Silver**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the silver is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "tier": "uncommon",
+      "rarity": 6,
+      "category": "ore",
+      "found": "You come across a node of **Gold**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the gold is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "magisteel",
+      "name": "Magisteel",
+      "tier": "uncommon",
+      "rarity": 6,
+      "category": "ore",
+      "found": "Arcane runes shimmer faintly across a dark steel vein.",
+      "pass": "You carefully extract the **magisteel**, its surface still warm with magic.",
+      "fail": "The arcane charge destabilizes and the vein collapses."
+    },
+    {
+      "id": "topaz",
+      "name": "Topaz",
+      "tier": "rare",
+      "rarity": 5,
+      "category": "gem",
+      "found": "Golden light refracts from a crystalline structure... **Topaz**!",
+      "pass": "You extract the topaz after a tense few moments.",
+      "fail": "The gem splits cleanly in two."
+    },
+    {
+      "id": "blue_spinel",
+      "name": "Blue Spinel",
+      "tier": "rare",
+      "rarity": 4,
+      "category": "gem",
+      "found": "A brilliant blue spark gleams in the stone... **Blue Spinel**!",
+      "pass": "You free the spinel with steady hands.",
+      "fail": "The spinel chips beyond value."
+    },
+    {
+      "id": "red_spinel",
+      "name": "Red Spinel",
+      "tier": "rare",
+      "rarity": 3,
+      "category": "gem",
+      "found": "A fiery red crystal pulses faintly... **Red Spinel**!",
+      "pass": "You extract the spinel intact.",
+      "fail": "The gem cracks under strain."
+    },
+    {
+      "id": "jacinth",
+      "name": "Jacinth",
+      "tier": "rare",
+      "rarity": 2,
+      "category": "gem",
+      "found": "A deep orange gem radiates warmth... **Jacinth**!",
+      "pass": "You carefully remove the jacinth.",
+      "fail": "The stone fractures before you can secure it."
+    },
+    {
+      "id": "marble",
+      "name": "Marble",
+      "tier": "rare",
+      "rarity": 6,
+      "category": "ore",
+      "found": "You come across a vein of **Marble**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the marble is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "tier": "rare",
+      "rarity": 3,
+      "category": "ore",
+      "found": "A pale, impossibly light metal gleams beneath the stone.",
+      "pass": "You extract the **titanium**, surprisingly light for its strength.",
+      "fail": "The vein shears apart before you can secure any usable metal."
+    },
+    {
+      "id": "electrum",
+      "name": "Electrum",
+      "tier": "rare",
+      "rarity": 2,
+      "category": "ore",
+      "found": "You come across a pale-gold vein shot through with silver... **Electrum**!",
+      "pass": "After a long stretch of careful work, you manage to collect the electrum.",
+      "fail": "The seam collapses into rubble before you can extract anything useful."
+    },
+    {
+      "id": "topaz",
+      "name": "Topaz",
+      "tier": "rare",
+      "rarity": 5,
+      "category": "gem",
+      "found": "Golden light refracts from a crystalline structure... **Topaz**!",
+      "pass": "You extract the topaz after a tense few moments.",
+      "fail": "The gem splits cleanly in two."
+    },
+    {
+      "id": "blue_spinel",
+      "name": "Blue Spinel",
+      "tier": "rare",
+      "rarity": 4,
+      "category": "gem",
+      "found": "A brilliant blue spark gleams in the stone... **Blue Spinel**!",
+      "pass": "You free the spinel with steady hands.",
+      "fail": "The spinel chips beyond value."
+    },
+    {
+      "id": "red_spinel",
+      "name": "Red Spinel",
+      "tier": "rare",
+      "rarity": 3,
+      "category": "gem",
+      "found": "A fiery red crystal pulses faintly... **Red Spinel**!",
+      "pass": "You extract the spinel intact.",
+      "fail": "The gem cracks under strain."
+    },
+    {
+      "id": "jacinth",
+      "name": "Jacinth",
+      "tier": "rare",
+      "rarity": 2,
+      "category": "gem",
+      "found": "A deep orange gem radiates warmth... **Jacinth**!",
+      "pass": "You carefully remove the jacinth.",
+      "fail": "The stone fractures before you can secure it."
+    },
+    {
+      "id": "mithril",
+      "name": "Mithril",
+      "tier": "legendary",
+      "rarity": 1,
+      "category": "ore",
+      "found": "A silvery-blue metal hums softly with latent power... **Mithril**.",
+      "pass": "With painstaking precision, you extract the mithril intact.",
+      "fail": "The magical metal resists your efforts and slips back into the stone."
+    },
+    {
+      "id": "platinum",
+      "name": "Platinum",
+      "tier": "legendary",
+      "rarity": 1,
+      "category": "ore",
+      "found": "You come across a node of **Platinum**!",
+      "pass": "You make relatively short work of the node.",
+      "fail": "Try as you may, the Platinum is buried too deep into the rocks to reach it!"
+    },
+    {
+      "id": "emerald",
+      "name": "Emerald",
+      "tier": "legendary",
+      "rarity": 1,
+      "category": "gem",
+      "found": "A rich green brilliance gleams from within the rock... **Emerald**!",
+      "pass": "With painstaking care, you extract the emerald whole.",
+      "fail": "The emerald splinters into useless fragments."
+    },
+    {
+      "id": "ruby",
+      "name": "Ruby",
+      "tier": "legendary",
+      "rarity": 1,
+      "category": "gem",
+      "found": "A deep crimson fire burns within the stone... **Ruby**!",
+      "pass": "You manage to free the ruby intact.",
+      "fail": "The ruby cracks under the pressure."
+    },
+    {
+      "id": "sapphire",
+      "name": "Sapphire",
+      "tier": "legendary",
+      "rarity": 1,
+      "category": "gem",
+      "found": "A brilliant blue gem glitters in the darkness... **Sapphire**!",
+      "pass": "You extract the sapphire with steady precision.",
+      "fail": "The sapphire fractures beyond recovery."
+    }
+  ]
+}

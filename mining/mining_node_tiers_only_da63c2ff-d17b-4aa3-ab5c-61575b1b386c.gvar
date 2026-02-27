@@ -1,0 +1,44 @@
+{
+  "version": 8,
+  "description": "Mining (tier-only). No named nodes; tier chosen by command or tier_weights. Rewards are generic tier-based ore.",
+  "tiers": {
+    "stone": { "dc": 11, "label": "Stone", "enabled": true, "reward_item": "Stone" },
+    "common": { "dc": 11, "label": "Common", "enabled": true, "reward_item": "Common Ore" },
+    "uncommon": { "dc": 16, "label": "Uncommon", "enabled": true, "reward_item": "Uncommon Ore" },
+    "rare": { "dc": 21, "label": "Rare", "enabled": true, "reward_item": "Rare Ore" },
+    "legendary": { "dc": 26, "label": "Legendary", "enabled": false, "reward_item": "Legendary Ore" }
+  },
+  "tier_aliases": {
+    "s": "stone",
+    "c": "common",
+    "u": "uncommon",
+    "r": "rare",
+    "l": "legendary",
+    "stone": "stone",
+    "common": "common",
+    "uncommon": "uncommon",
+    "rare": "rare",
+    "legendary": "legendary"
+  },
+  "config": {
+    "cooldown": 7200,
+    "tool_names": ["mason's tools"],
+    "tool_ability": "str",
+    "harvest_skill": "athletics",
+    "find_skill_default": "nature",
+    "tier_weights": {
+      "stone": 70,
+      "common": 70,
+      "uncommon": 23,
+      "rare": 6,
+      "legendary": 1
+    },
+    "default_tier": "common",
+    "bag_label": "Mining",
+    "reward_label": "Pickaxe",
+    "reward_item_template": "{tier_label} Ore",
+    "found_template": "You find a workable **{tier_label}** vein in the rock.",
+    "pass_template": "You manage to extract usable material from the vein.",
+    "fail_template": "The vein crumbles and you can't recover anything usable."
+  }
+}
