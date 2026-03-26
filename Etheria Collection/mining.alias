@@ -250,12 +250,9 @@ if cmd in ["help", "list", "?"]:
 # -----------------------------
 # Cooldown gate
 # -----------------------------
-gate = cd.gate("mining", cooldown, set_on_pass=False)
+gate = cd.gate_cvar("last_hunt", cooldown)
 if not gate["ok"]:
     return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
-
-cd.set_timer("mining", cooldown)
-cd.save()
 
 # -----------------------------
 # Find skill override

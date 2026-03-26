@@ -18,8 +18,8 @@ tier_aliases = data.get("tier_aliases") or {}
 # -----------------------------
 # Defaults / Config
 # -----------------------------
-# cooldown = int(cfg.get("cooldown", 7200))
-cooldown = int(3)
+cooldown = int(cfg.get("cooldown", 7200))
+# cooldown = int(3)
 tool_options = cfg.get("tool_names") or ["mason's tools"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
@@ -250,12 +250,9 @@ if cmd in ["help", "list", "?"]:
 # -----------------------------
 # Cooldown gate
 # -----------------------------
-gate = cd.gate("mining", cooldown, set_on_pass=False)
+gate = cd.gate_cvar("last_hunt", cooldown)
 if not gate["ok"]:
     return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
-
-cd.set_timer("mining", cooldown)
-cd.save()
 
 # -----------------------------
 # Find skill override
