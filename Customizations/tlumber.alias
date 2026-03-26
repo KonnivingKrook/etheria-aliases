@@ -4,7 +4,7 @@ ch = character()
 data = load_json(get_gvar("db1be665-d0e6-42b0-8ce8-a3439c0a3fc7"))
 using(
   cdlib="cc413a98-489e-49f9-aac2-907993761792",
-  gather="6d152ad4-045e-4e48-92c4-820929143039",
+  gather="ba111c52-33c1-4933-a04c-a2c73bf086a2",
   baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
 )
 
@@ -16,9 +16,9 @@ cfg = (data.get("config") or {})
 def respond(title, desc=None, fields=None):
     return gather.build_output(title, desc or [], fields or [], footer=FOOTER, ch=ch)
 
-# Default 3 hours (override via cfg)
+# Default 2 hours (override via cfg)
 tier_defaults = {"common": 70, "uncommon": 25, "rare": 5}
-cooldown = int(cfg.get("cooldown", 10800))
+cooldown = int(cfg.get("cooldown", 7200))
 
 # Tier weights only matter when not targeting a tier explicitly
 tier_weights = (cfg.get("tier_weights") or tier_defaults)
@@ -87,25 +87,22 @@ if cmd in ["help", "?"]:
     return respond("Lumbering Help", lines)
 
 # ---- Cooldown ----
-gate = cd.gate("lumber", cooldown, set_on_pass=False)
+gate = cd.gate_cvar("last_hunt", cooldown)
 if not gate["ok"]:
     return respond("Lumbering", [f"Available: {cd.ts(gate['expiry'], 'R')}"])
 
-cd.set_timer("lumber", cooldown)
-cd.save()
-
 # ---- Select tier (targeted or weighted random) ----
-sel = gather.select_tier(data, tier_cmd, weights=tier_weights, default_tier=default_tier)
+sel = gather.select_tier(data, tier_cmd)
 tier = sel["tier"]
 dc_val = sel["dc_val"]
 
 # ---- Find check (uses tier DC) ----
-find = gather.find_check(
+find = gather.roll_check(
     ch,
     skill=find_skill,
     dc=dc_val,
-    use_adv=use_adv,
-    use_dis=use_dis,
+    adv=use_adv,
+    dis=use_dis,
     guidance=use_guidance
 )
 
@@ -141,8 +138,8 @@ reward = gather.calc_reward_points(
     harvest_ok,
     adv=use_adv,
     dis=use_dis,
-    has_prof=flags["has_prof"],
-    has_exp=flags["has_exp"],
+    prof=flags["prof"],
+    exp=flags["exp"],
     base_label=reward_label
 )
 
@@ -174,7 +171,7 @@ fields = [
 ]
 
 if harvest_ok:
-    fields.append(("Rewards", f"{reward['points']} {tier.title()} Wood\n" + "\n".join(reward["lines"])) )
+    fields.append(("Rewards", f"{reward['points']} {tier.title()} Lumber\n" + "\n".join(reward["lines"])) )
 else:
     fields.append(("Rewards", "0\nNo resources gained."))
 
