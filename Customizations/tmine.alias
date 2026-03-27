@@ -186,29 +186,29 @@ if cmd == "set":
         desc = [
             "Guidance will now be included on every run.",
             "",
-            "Use `!tmine set guidance off` to disable it."
+            "Use `!mining set guidance off` to disable it."
         ]
         return gather.build_output("Guidance Preference Saved", desc, [], footer=FOOTER)
 
     desc = [
         "Set your default mining behavior:",
         "",
-        "- `!tmine set simple`",
-        "- `!tmine set complex`",
-        "- `!tmine set bonus 1d4` (use `clear` to remove)",
-        "- `!tmine set guidance on/off`",
+        "- `!mining set simple`",
+        "- `!mining set complex`",
+        "- `!mining set bonus 1d4` (use `clear` to remove)",
+        "- `!mining set guidance on/off`",
     ]
     return gather.build_output("Mining Settings", desc, [], footer=FOOTER)
 
 # Version 2!!
 """
-`!tmine set simple|complex`      - sets the character default mode for mining results.
-`!tmine set bonus <diceExp>`     - sets a default extra bonus (use `clear` to remove).
-`!tmine set guidance on|off`     - toggles automatic guidance per run.
-`!tmine`                         - weighted random roll against all tiers
-`!tmine b|c|u|r|v|l`             - mines a specific tier with character settings (default: simple)
-`!tmine b|c|u|r|v|l -c|complex`  - mines specific tier with override for complex
-`!tmine b|c|u|r|v|l -s|simple`   - mines specific tier with override for simple
+`!mining set simple|complex`      - sets the character default mode for mining results.
+`!mining set bonus <diceExp>`     - sets a default extra bonus (use `clear` to remove).
+`!mining set guidance on|off`     - toggles automatic guidance per run.
+`!mining`                         - weighted random roll against all tiers
+`!mining b|c|u|r|v|l`             - mines a specific tier with character settings (default: simple)
+`!mining b|c|u|r|v|l -c|complex`  - mines specific tier with override for complex
+`!mining b|c|u|r|v|l -s|simple`   - mines specific tier with override for simple
 """
 
 # -----------------------------
@@ -226,16 +226,16 @@ if cmd in ["help", "list", "?"]:
     lines.append("**Mining**")
     lines.append("")
     lines.append("**Usage**")
-    lines.append("- `!tmine` (weighted random tier)")
-    lines.append(f"- `!tmine <tier>` where tier is one of: `{tier_names}`")
-    lines.append("- `!tmine set simple|complex` to store your default mode.")
-    lines.append("- `!tmine set bonus <dice>` to keep a default `-b` bonus.")
-    lines.append("- `!tmine set guidance on|off` to toggle automatic guidance.")
+    lines.append("- `!mining` (weighted random tier)")
+    lines.append(f"- `!mining <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!mining set simple|complex` to store your default mode.")
+    lines.append("- `!mining set bonus <dice>` to keep a default `-b` bonus.")
+    lines.append("- `!mining set guidance on|off` to toggle automatic guidance.")
     lines.append("- Add `-c|complex` to roll a named node inside the tier.")
     lines.append("- Add `-s|simple` to force tier-only rewards (default).")
     lines.append("- Optional: add `adv` or `dis`")
     lines.append("- Optional: add `guidance|g`")
-    lines.append("- Optional: override find skill (e.g. `!tmine surv`)")
+    lines.append("- Optional: override find skill (e.g. `!mining surv`)")
     lines.append("- Optional: add a bonus to rolls (e.g. `-b 1d4`)")
     lines.append("")
     lines.append("**Bags**")

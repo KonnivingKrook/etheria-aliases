@@ -298,31 +298,12 @@ def tool_tier_from_cvars(ch, tool_name, e_cvar="eTools", p_cvar="pTools"):
   return 0
 
 def skill_tier(skill_obj):
-  prof = False
-  exp = False
-
   try:
-    prof = bool(skill_obj.prof)
-  except "NotDefined":
-    prof = False
-  if not prof:
-    try:
-      prof = bool(skill_obj.proficient)
-    except "NotDefined":
-      prof = False
-
-  try:
-    exp = bool(skill_obj.expert)
-  except "NotDefined":
-    exp = False
-  if not exp:
-    try:
-      exp = bool(skill_obj.expertise)
-    except "NotDefined":
-      exp = False
-
-  if exp: return 2
-  if prof: return 1
+    prof_val = float(skill_obj.prof)
+  except:
+    prof_val = 0
+  if prof_val >= 2: return 2
+  if prof_val >= 1: return 1
   return 0
 
 def choose_best_check(tool_tier, skill_tier_val, prefer_tools_on_tie=True):
