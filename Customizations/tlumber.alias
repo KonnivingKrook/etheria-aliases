@@ -19,6 +19,8 @@ def respond(title, desc=None, fields=None):
 # Default 2 hours (override via cfg)
 tier_defaults = {"common": 70, "uncommon": 25, "rare": 5}
 cooldown = int(cfg.get("cooldown", 7200))
+# cooldown = int(3)
+
 
 # Tier weights only matter when not targeting a tier explicitly
 tier_weights = (cfg.get("tier_weights") or tier_defaults)
@@ -38,7 +40,10 @@ if not tool_options:
     tool_options = ["woodcarver's tools"]
 tool_ability = (cfg.get("tool_ability") or "str")
 harvest_skill = (cfg.get("harvest_skill") or "athletics")
-find_skill_default = (cfg.get("find_skill_default") or "survival")
+find_skills_raw = cfg.get("find_skills") or ["nature", "survival"]
+find_skills = [find_skills_raw] if typeof(find_skills_raw) == "str" else [s for s in (find_skills_raw or []) if s]
+if not find_skills:
+    find_skills = ["nature", "survival"]
 reward_label = (cfg.get("reward_label") or "Axe")
 bag_label = (cfg.get("bag_label") or "Lumber")
 bag_cvar = (cfg.get("bag_cvar") or "bags")
@@ -50,12 +55,12 @@ use_adv = "adv" in args
 use_dis = "dis" in args
 use_guidance = ("guidance" in args) or ("g" in args)
 
-# Find skill selection: default Survival, allow Nature via args
-find_skill = find_skill_default.lower()
+# Find skill override
+find_override = ""
 if ("nature" in args) or ("nat" in args):
-    find_skill = "nature"
+    find_override = "nature"
 elif ("survival" in args) or ("surv" in args):
-    find_skill = "survival"
+    find_override = "survival"
 
 # Tier targeting: allow common/uncommon/rare as first arg
 excluded = ["help", "?", "nat", "nature", "surv", "survival", "adv", "dis", "g", "guidance"]
@@ -97,14 +102,10 @@ tier = sel["tier"]
 dc_val = sel["dc_val"]
 
 # ---- Find check (uses tier DC) ----
-find = gather.roll_check(
-    ch,
-    skill=find_skill,
-    dc=dc_val,
-    adv=use_adv,
-    dis=use_dis,
-    guidance=use_guidance
-)
+if find_override:
+    find = gather.roll_check(ch, skill=find_override, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance)
+else:
+    find = gather.roll_check_best(ch, find_skills, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance)
 
 if not find["ok"]:
     desc = []
@@ -113,7 +114,7 @@ if not find["ok"]:
     desc.append(f"**Tier:** {tier} (DC {dc_val})")
     desc.append("No workable tree found today.")
     fields = [
-        (f"Find ({find_skill.title()})", find.get("error") or str(find.get("roll"))),
+        (f"Find ({find['name']})", find.get("error") or str(find.get("roll"))),
         ("Rewards", "0\nNo resources gained."),
     ]
     return respond("Lumbering", desc, fields)
@@ -166,7 +167,7 @@ desc = [
 ]
 
 fields = [
-    (f"Find ({find_skill.title()})", str(find["roll"])),
+    (f"Find ({find['name']})", str(find["roll"])),
     (ex["name"], str(harvest_roll)),
 ]
 

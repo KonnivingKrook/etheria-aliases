@@ -240,6 +240,41 @@ def roll_check(ch, *, skill, dc, adv=False, dis=False, guidance=False, bonus_exp
     "dc": int(dc)
   }
 
+def roll_check_best(ch, skills, *, dc, adv=False, dis=False, guidance=False, bonus_expr=""):
+  best_name = None
+  best_obj = None
+  best_t = -1
+  best_mod = -99
+
+  for sname in (skills or []):
+    obj = resolve_skill_or_none(ch, sname)
+    if not obj:
+      continue
+    t = skill_tier(obj)
+    try:
+      mod = int(obj.value)
+    except:
+      mod = 0
+    if t > best_t or (t == best_t and mod > best_mod):
+      best_t = t
+      best_mod = mod
+      best_name = sname
+      best_obj = obj
+
+  if not best_obj:
+    name = str((skills or ["unknown"])[0]).title()
+    return {"name": name, "roll": None, "ok": False, "error": "No valid skill found"}
+
+  expr = build_check_expr(best_obj, adv, dis, guidance, bonus_expr)
+  r = vroll(expr)
+  return {
+    "name": best_name.title(),
+    "roll": r,
+    "ok": r.total >= int(dc),
+    "expr": expr,
+    "dc": int(dc)
+  }
+
 # -----------------------------
 # Proficiency / Expertise Helpers
 # -----------------------------

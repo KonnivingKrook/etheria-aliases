@@ -28,7 +28,7 @@
     "tool_names": ["mason's tools"],
     "tool_ability": "str",
     "harvest_skill": "athletics",
-    "find_skill_default": "nature",
+    "find_skills": ["nature", "survival"],
     "tier_weights": {
       "basic": 80,
       "common": 60,
