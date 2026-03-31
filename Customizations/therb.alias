@@ -1,7 +1,7 @@
 embed
 <drac2>
 ch = character()
-data = load_json(get_gvar("REPLACE-WITH-GVAR-UUID"))  # Upload herbalism_gvar.gvar and paste the UUID here
+data = load_json(get_gvar("9c693132-e360-499f-bea2-815397f7f53a"))  # Upload herbalism_gvar.gvar and paste the UUID here
 
 using(
     cdlib="cc413a98-489e-49f9-aac2-907993761792",

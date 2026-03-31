@@ -2,10 +2,10 @@
   "version": 1,
   "description": "Herbalism tier and config data. Simple mode yields generic tier herbs; complex mode yields a randomly selected specific named herb from that tier.",
   "tiers": {
-    "common":    { "dc": 10, "label": "Common",    "enabled": true,  "price": 25,   "note": "Found in areas surrounding the settlement." },
-    "uncommon":  { "dc": 14, "label": "Uncommon",  "enabled": true,  "price": 100,  "note": "Found in areas surrounding the settlement." },
-    "rare":      { "dc": 18, "label": "Rare",       "enabled": true,  "price": 500,  "note": "Found in areas surrounding the settlement." },
-    "very_rare": { "dc": 22, "label": "Very Rare",  "enabled": true,  "price": 2500, "note": "Found in areas surrounding the settlement." },
+    "common":    { "dc": 11, "label": "Common",    "enabled": true,  "price": 25,   "note": "Found in areas surrounding the settlement." },
+    "uncommon":  { "dc": 13, "label": "Uncommon",  "enabled": true,  "price": 100,  "note": "Found in areas surrounding the settlement." },
+    "rare":      { "dc": 16, "label": "Rare",       "enabled": true,  "price": 500,  "note": "Found in areas surrounding the settlement." },
+    "very_rare": { "dc": 21, "label": "Very Rare",  "enabled": true,  "price": 2500, "note": "Found in areas surrounding the settlement." },
     "legendary": { "dc": 26, "label": "Legendary",  "enabled": false, "price": null, "note": "Only found via dungeon, mission, or quest — not in areas surrounding the settlement." }
   },
   "tier_aliases": {
@@ -23,7 +23,7 @@
   },
   "config": {
     "cooldown": 7200,
-    "tool_names": ["herbalism kit"],
+    "tool_names": ["herbalism kit", "brewer's kit"],
     "tool_ability": "wis",
     "harvest_skill": "nature",
     "find_skill_default": "nature",
