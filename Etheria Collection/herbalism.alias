@@ -1,0 +1,432 @@
+embed
+<drac2>
+ch = character()
+data = load_json(get_gvar("9c693132-e360-499f-bea2-815397f7f53a"))  # Upload herbalism_gvar.gvar and paste the UUID here
+
+using(
+    cdlib="cc413a98-489e-49f9-aac2-907993761792",
+    gather="ba111c52-33c1-4933-a04c-a2c73bf086a2",
+    baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
+)
+
+cd = cdlib.Cooldowns()
+cfg = data.get("config") or {}
+tiers = data.get("tiers") or {}
+tier_aliases = data.get("tier_aliases") or {}
+
+# -----------------------------
+# Defaults / Config
+# -----------------------------
+cooldown = int(cfg.get("cooldown", 7200))
+tool_options = cfg.get("tool_names") or ["herbalism kit"]
+tool_type = typeof(tool_options)
+if tool_type == "str":
+    tool_options = [tool_options]
+elif tool_type in ["list", "tuple", "SafeList", "SafeTuple"]:
+    tool_options = [t for t in (tool_options or []) if t]
+else:
+    tool_options = [tool_options] if tool_options else []
+tool_options = [t for t in (tool_options or []) if t] or ["herbalism kit"]
+
+tool_ability = cfg.get("tool_ability", "wis")
+harvest_skill = cfg.get("harvest_skill", "nature")
+find_skill_default = (cfg.get("find_skill_default") or "nature").lower()
+
+reward_label = cfg.get("reward_label", "Herbalism Kit")
+bag_label = cfg.get("bag_label", "Herbalism")
+bag_cvar = cfg.get("bag_cvar", "bags")
+
+reward_item_template = cfg.get("reward_item_template", "{tier_label} Herb")
+found_template = cfg.get("found_template", "You search the undergrowth and spot a **{tier_label}** herb.")
+pass_template = cfg.get("pass_template", "You carefully harvest the herb, preserving its potency.")
+fail_template = cfg.get("fail_template", "You damage the plant during collection and it loses its properties.")
+
+def format_text(template, tier, tier_label, node_name=""):
+    text = (template or "")
+    text = text.replace("{tier}", tier).replace("{tier_label}", tier_label)
+    text = text.replace("{node}", node_name or "")
+    return text
+
+FOOTER = "!herb help | @konnivingkrook#0"
+
+# -----------------------------
+# Args
+# -----------------------------
+raw_args = &ARGS&
+args = [a.lower() for a in raw_args]
+cmd = args[0] if args else ""
+
+normalized_alias_tokens = set()
+for alias_key in tier_aliases.keys():
+    normalized_alias_tokens.add((alias_key or "").strip().lower())
+
+arg_queue = list(raw_args)
+tier_arg = ""
+
+if arg_queue:
+    first_token = arg_queue[0]
+    if (first_token or "").strip().lower() in normalized_alias_tokens:
+        tier_arg = first_token
+        arg_queue = arg_queue[1:]
+
+parse = argparse(arg_queue)
+tier_cmd = (tier_arg or "").strip().lower()
+
+def _first_str(arg):
+    t = typeof(arg)
+    if t in ["NoneType", "null", "None"]:
+        return ""
+    if t == "str":
+        return (arg or "").strip()
+    if t in ["list", "tuple", "SafeList", "SafeTuple"]:
+        for item in (arg or []):
+            if item:
+                return str(item).strip()
+        return ""
+    if t == "bool":
+        return ""
+    return str(arg).strip()
+
+cmd = args[0] if args else ""
+use_adv = "adv" in args
+use_dis = "dis" in args
+use_guidance = ("guidance" in args) or ("g" in args)
+
+bonus_expr = _first_str(parse.get("b"))
+
+MODE_SIMPLE = "simple"
+MODE_COMPLEX = "complex"
+MODE_PREF_CVAR = "herb_mode_pref"
+BONUS_PREF_CVAR = "herb_bonus_pref"
+GUIDANCE_PREF_CVAR = "herb_guidance_pref"
+
+# Load stored preference (per character)
+mode_pref = (ch.get_cvar(MODE_PREF_CVAR) or MODE_SIMPLE).strip().lower()
+if mode_pref not in [MODE_SIMPLE, MODE_COMPLEX]:
+    mode_pref = MODE_SIMPLE
+stored_bonus = (ch.get_cvar(BONUS_PREF_CVAR) or "").strip()
+stored_guidance = (ch.get_cvar(GUIDANCE_PREF_CVAR) or "").strip().lower() in ["1", "true", "yes", "on"]
+mode_override = None
+mode_tokens_complex = {"-c", "--complex", "-complex", "complex"}
+mode_tokens_simple = {"-s", "--simple", "-simple", "simple"}
+
+for token in args:
+    if token in mode_tokens_complex:
+        mode_override = MODE_COMPLEX
+    elif token in mode_tokens_simple:
+        mode_override = MODE_SIMPLE
+
+mode_setting = mode_override or mode_pref
+if not bonus_expr:
+    bonus_expr = stored_bonus
+if not use_guidance and stored_guidance:
+    use_guidance = True
+
+# -----------------------------
+# Subcommand: set simple|complex/bonus/guidance
+# -----------------------------
+if cmd == "set":
+    target = args[1] if len(args) > 1 else ""
+    target = target.strip().lower()
+
+    if target in ["simple", "s", "complex", "c"]:
+        new_mode = MODE_SIMPLE if target in ["simple", "s"] else MODE_COMPLEX
+        ch.set_cvar(MODE_PREF_CVAR, new_mode)
+        desc = [
+            f"Your default herbalism mode is now **{new_mode.title()}**.",
+            "",
+            "Use `-s` or `-c` on a command to override it for a single run."
+        ]
+        return gather.build_output("Herbalism Mode Saved", desc, [], footer=FOOTER)
+
+    if target in ["bonus", "b"]:
+        bonus_value = args[2] if len(args) > 2 else ""
+        bonus_value = bonus_value.strip()
+
+        if not bonus_value or bonus_value.lower() in ["clear", "none", "off", "0"]:
+            ch.set_cvar(BONUS_PREF_CVAR, "")
+            desc = [
+                "Default bonus dice cleared.",
+                "",
+                "Future runs will only use `-b` when provided."
+            ]
+            return gather.build_output("Herbalism Bonus Cleared", desc, [], footer=FOOTER)
+
+        ch.set_cvar(BONUS_PREF_CVAR, bonus_value)
+        desc = [
+            f"Default bonus dice set to `{bonus_value}`.",
+            "",
+            "You can still override it per run with `-b`."
+        ]
+        return gather.build_output("Herbalism Bonus Saved", desc, [], footer=FOOTER)
+
+    if target in ["guidance", "g"]:
+        guidance_value = args[2] if len(args) > 2 else ""
+        guidance_value = guidance_value.strip().lower()
+
+        if guidance_value in ["", "off", "no", "clear", "false", "0"]:
+            ch.set_cvar(GUIDANCE_PREF_CVAR, "")
+            desc = [
+                "Guidance preference cleared.",
+                "",
+                "Add `guidance` or `g` to a run when you need it."
+            ]
+            return gather.build_output("Guidance Cleared", desc, [], footer=FOOTER)
+
+        ch.set_cvar(GUIDANCE_PREF_CVAR, "true")
+        desc = [
+            "Guidance will now be included on every run.",
+            "",
+            "Use `!herb set guidance off` to disable it."
+        ]
+        return gather.build_output("Guidance Preference Saved", desc, [], footer=FOOTER)
+
+    desc = [
+        "Set your default herbalism behavior:",
+        "",
+        "- `!herb set simple`",
+        "- `!herb set complex`",
+        "- `!herb set bonus 1d4` (use `clear` to remove)",
+        "- `!herb set guidance on/off`",
+    ]
+    return gather.build_output("Herbalism Settings", desc, [], footer=FOOTER)
+
+# -----------------------------
+# Help: enabled tiers only, sorted by DC asc
+# -----------------------------
+if tiers:
+    tier_items = [(k, v) for k, v in tiers.items() if (v or {}).get("enabled", True)]
+    tier_items.sort(key=lambda kv: int((kv[1] or {}).get("dc", 0)))
+    tier_names = ", ".join([k for k, _ in tier_items])
+else:
+    tier_names = "none"
+
+if cmd in ["help", "list", "?"]:
+    lines = []
+    lines.append("**Herbalism**")
+    lines.append("")
+    lines.append("**Usage**")
+    lines.append("- `!herb` (weighted random tier)")
+    lines.append(f"- `!herb <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!herb set simple|complex` to store your default mode.")
+    lines.append("- `!herb set bonus <dice>` to keep a default `-b` bonus.")
+    lines.append("- `!herb set guidance on|off` to toggle automatic guidance.")
+    lines.append("- Add `-c|complex` to roll a specific named herb within the tier.")
+    lines.append("- Add `-s|simple` to force tier-only rewards (default).")
+    lines.append("- Optional: add `adv` or `dis`")
+    lines.append("- Optional: add `guidance|g`")
+    lines.append("- Optional: override find skill (e.g. `!herb surv`)")
+    lines.append("- Optional: add a bonus to rolls (e.g. `-b 1d4`)")
+    lines.append("")
+    lines.append("**Bags**")
+    lines.append(f"- Herbs are stored in your `{bag_label}` bag (auto-created if missing).")
+    lines.append("")
+    lines.append("**Tiers**")
+
+    for t, tier_data in tier_items:
+        dc_val = (tier_data or {}).get("dc", "?")
+        price = (tier_data or {}).get("price")
+        price_str = f" — {price}g/component" if price else ""
+        lines.append(f"- **{t.title().replace('_', ' ')}** (DC {dc_val}{price_str})")
+
+    lines.append("")
+    lines.append("**Note:** Legendary herbs cannot be found in the wilderness.")
+    lines.append("They require a dungeon, mission, or quest.")
+
+    title = "Herbalism List" if cmd == "list" else "Herbalism Help"
+    return gather.build_output(title, lines, [], footer=FOOTER)
+
+# -----------------------------
+# Cooldown gate (shared with other gathering activities)
+# -----------------------------
+gate = cd.gate_cvar("last_hunt", cooldown)
+if not gate["ok"]:
+    return gather.build_output("Herbalism", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
+
+# -----------------------------
+# Find skill override
+# -----------------------------
+find_skill = find_skill_default
+if ("nature" in args) or ("nat" in args):
+    find_skill = "nature"
+elif ("survival" in args) or ("surv" in args):
+    find_skill = "survival"
+
+# -----------------------------
+# Explicit tier disabled check
+# -----------------------------
+resolved_cmd = gather.resolve_tier(tier_cmd, tier_aliases)
+
+if resolved_cmd in (tiers or {}):
+    tier_data = (tiers.get(resolved_cmd) or {})
+    if not tier_data.get("enabled", True):
+        note = (tier_data.get("note") or "")
+        msg = [f"**{resolved_cmd.title().replace('_', ' ')}** herbs are not available in the surrounding wilderness."]
+        if note:
+            msg.append(note)
+        return gather.build_output("Herbalism", msg, [], footer=FOOTER)
+
+# -----------------------------
+# Tier selection
+# -----------------------------
+sel = gather.select_tier(data, tier_cmd)
+tier = sel.get("tier") or (cfg.get("default_tier") or "common")
+tier_label = sel.get("tier_label") or tier.title()
+dc_val = int(sel.get("dc_val") or 10)
+
+# Reward item name (simple mode)
+tier_cfg = tiers.get(tier) or {}
+item_name = (tier_cfg.get("reward_item") or "").strip()
+if not item_name:
+    item_name = reward_item_template.replace("{tier}", tier).replace("{tier_label}", tier_label)
+
+node_entry = None
+node_name = ""
+node_notice = ""
+complex_active = False
+
+if mode_setting == MODE_COMPLEX:
+    node_entry = gather.select_node_for_tier(data, tier)
+    if node_entry:
+        complex_active = True
+        node_name = (node_entry.get("name") or node_entry.get("id") or tier_label).strip()
+    else:
+        node_notice = f"No specific herbs configured for {tier_label}; using generic tier rewards."
+
+mode_label = "Complex" if complex_active else "Simple"
+if not complex_active and mode_setting == MODE_COMPLEX:
+    mode_label = "Simple (no herbs)"
+
+loot_name = node_name if complex_active else item_name
+display_node_name = node_name or tier_label
+
+# Text shown in embed body
+found_text = format_text((node_entry.get("found") if complex_active else found_template), tier, tier_label, display_node_name)
+pass_text = format_text((node_entry.get("pass") if complex_active else pass_template), tier, tier_label, display_node_name)
+fail_text = format_text((node_entry.get("fail") if complex_active else fail_template), tier, tier_label, display_node_name)
+
+# -----------------------------
+# Find check
+# -----------------------------
+find = gather.roll_check(
+    ch,
+    skill=find_skill,
+    dc=dc_val,
+    adv=use_adv,
+    dis=use_dis,
+    guidance=use_guidance,
+    bonus_expr=bonus_expr
+)
+
+if not find.get("ok"):
+    title = f"Herbalism Report - {tier_label} (DC {dc_val})"
+    search_result = find.get("error") or str(find.get("roll"))
+    desc = [
+        "You search the area carefully but find no harvestable herbs."
+    ]
+
+    if mode_setting == MODE_COMPLEX and not complex_active:
+        desc.append("No specific herb located.")
+
+    desc.extend([
+        "",
+        f"**Searching** ({find_skill.title()}):",
+        f"  {search_result}",
+        "",
+        "**Harvesting** (Not Attempted):",
+        "  No herb was located to harvest.",
+        "",
+        "**Resources Gained**:",
+        "  No herbs recovered."
+    ])
+
+    return gather.build_output(title, desc, [], footer=FOOTER)
+
+# -----------------------------
+# Harvest check
+# -----------------------------
+ex = gather.roll_extraction_best(
+    ch,
+    adv=use_adv,
+    dis=use_dis,
+    guidance=use_guidance,
+    bonus_expr=bonus_expr,
+    tool_name=tool_options,
+    tool_ability=tool_ability,
+    skill_name=harvest_skill,
+    prefer_tools_on_tie=True
+)
+
+extract_name = ex.get("name") or "Harvesting"
+extract_check = ex.get("roll")
+extracted = bool(extract_check and (extract_check.total >= dc_val))
+
+flags = gather.extraction_flags(ex)
+
+reward = gather.calc_reward_points(
+    extracted,
+    adv=use_adv,
+    dis=use_dis,
+    prof=flags.get("prof"),
+    exp=flags.get("exp"),
+    base_label=reward_label
+)
+
+points = reward.get("points", 0)
+
+bag_field = ""
+if extracted and points > 0:
+    bag_result = gather.add_rewards_to_bag(
+        ch,
+        activity="herbalism",
+        bag_label=bag_label,
+        bag_cvar=bag_cvar,
+        rewards={loot_name: points}
+    )
+    if not bag_result.get("ok") and bag_result.get("bag_name"):
+        bag_field = bag_result.get("error") or "Unable to record loot."
+
+# -----------------------------
+# Output
+# -----------------------------
+title = f"Herbalism Report - {tier_label} {loot_name if complex_active else ''} (DC {dc_val})"
+desc_lines = [
+    found_text,
+    pass_text if extracted else fail_text
+]
+
+if node_notice:
+    desc_lines.append(node_notice)
+
+find_roll = str(find.get("roll"))
+extract_roll = str(extract_check)
+
+desc_lines.extend([
+    "",
+    f"**Searching** ({find_skill.title()}):",
+    f"  {find_roll}",
+    "",
+    f"**Harvesting the Plant** \n({extract_name}):",
+    f"  {extract_roll}"
+])
+
+desc_lines.extend([
+    "",
+    "**Resources Gained**:"
+])
+
+if extracted:
+    desc_lines.append(f"  {points} {loot_name} added to your bag.")
+    for line in (reward.get("lines") or []):
+        desc_lines.append(f"  {line}")
+else:
+    desc_lines.append("  No herbs recovered.")
+
+if bag_field:
+    desc_lines.extend([
+        "",
+        bag_field
+    ])
+
+return gather.build_output(title, desc_lines, [], footer=FOOTER)
+</drac2>
