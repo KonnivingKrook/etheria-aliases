@@ -20,7 +20,7 @@
       "woodcarver's tools",
       "carpenter's tools"
     ],
-    "tool_ability": "str",
+    "tool_ability": ["str"],
     "harvest_skill": "athletics",
     "tier_weights": {
       "common": 70,

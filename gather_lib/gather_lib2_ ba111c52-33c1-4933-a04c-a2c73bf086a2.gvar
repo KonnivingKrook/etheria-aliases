@@ -13,6 +13,21 @@ using(
 def q(s):
   return (s or "").replace("\"", "'")
 
+def first_str(arg):
+  t = typeof(arg)
+  if t in ["NoneType", "null", "None"]:
+    return ""
+  if t == "str":
+    return (arg or "").strip()
+  if t in ["list", "tuple", "SafeList", "SafeTuple"]:
+    for item in (arg or []):
+      if item:
+        return str(item).strip()
+    return ""
+  if t == "bool":
+    return ""
+  return str(arg).strip()
+
 def title_words(s, default=""):
   s = (s or "").strip()
   if not s:
@@ -350,6 +365,29 @@ def roll_tool_check_str(ch, tool_tier, adv=False, dis=False, guidance=False, bon
 
   return expr, vroll(expr)
 
+def _best_tool_ability(ch, tool_ability):
+  """Resolve tool_ability (str or list) to the single ability with the highest mod."""
+  a_type = typeof(tool_ability)
+  if a_type in ["list", "tuple", "SafeList", "SafeTuple"]:
+    abilities = [a for a in (tool_ability or []) if a]
+  else:
+    abilities = [(tool_ability or "str")]
+  if not abilities:
+    abilities = ["str"]
+
+  best_ability = abilities[0]
+  best_mod = -99
+  for a in abilities:
+    try:
+      mod = int(ch.stats.get_mod(a.lower()))
+    except:
+      mod = 0
+    if mod > best_mod:
+      best_mod = mod
+      best_ability = a
+
+  return best_ability.lower()
+
 def roll_extraction_best(
   ch,
   adv=False,
@@ -378,6 +416,8 @@ def roll_extraction_best(
       tool_t = cand_t
       best_tool = cand
 
+  best_ability = _best_tool_ability(ch, tool_ability)
+
   skill_obj = resolve_skill_or_none(ch, skill_name) or resolve_skill_or_none(ch, "athletics")
   if not skill_obj:
     skill_obj = ch.skills.athletics
@@ -394,13 +434,13 @@ def roll_extraction_best(
       dis=dis,
       guidance=guidance,
       bonus_expr=bonus_expr,
-      ability=tool_ability
+      ability=best_ability
     )
     return {
       "use_tools": True,
       "tool_tier": tool_t,
       "skill_tier": skill_t,
-      "name": f"{title_words(best_tool,'Tools')} ({(tool_ability or 'str').upper()})",
+      "name": f"{title_words(best_tool,'Tools')} ({best_ability.upper()})",
       "expr": expr,
       "roll": r
     }
@@ -450,6 +490,76 @@ def calc_reward_points(extracted, adv=False, dis=False, prof=False, exp=False, b
     lines.append("> +1 for Expertise")
 
   return {"points": pts, "lines": lines}
+
+# -----------------------------
+# Preference Set Subcommand
+# -----------------------------
+def handle_set_cmd(ch, args, mode_pref_cvar, bonus_pref_cvar, guidance_pref_cvar, activity_name="Gathering", alias_cmd="!gather", footer="", supports_mode=True):
+  MODE_SIMPLE = "simple"
+  MODE_COMPLEX = "complex"
+
+  target = args[1] if len(args) > 1 else ""
+  target = target.strip().lower()
+
+  if supports_mode and target in ["simple", "s", "complex", "c"]:
+    new_mode = MODE_SIMPLE if target in ["simple", "s"] else MODE_COMPLEX
+    ch.set_cvar(mode_pref_cvar, new_mode)
+    desc = [
+      f"Your default {activity_name.lower()} mode is now **{new_mode.title()}**.",
+      "",
+      "Use `-s` or `-c` on a command to override it for a single run."
+    ]
+    return build_output(f"{activity_name} Mode Saved", desc, [], footer=footer)
+
+  if target in ["bonus", "b"]:
+    bonus_value = args[2] if len(args) > 2 else ""
+    bonus_value = bonus_value.strip()
+
+    if not bonus_value or bonus_value.lower() in ["clear", "none", "off", "0"]:
+      ch.set_cvar(bonus_pref_cvar, "")
+      desc = [
+        "Default bonus dice cleared.",
+        "",
+        "Future runs will only use `-b` when provided."
+      ]
+      return build_output(f"{activity_name} Bonus Cleared", desc, [], footer=footer)
+
+    ch.set_cvar(bonus_pref_cvar, bonus_value)
+    desc = [
+      f"Default bonus dice set to `{bonus_value}`.",
+      "",
+      "You can still override it per run with `-b`."
+    ]
+    return build_output(f"{activity_name} Bonus Saved", desc, [], footer=footer)
+
+  if target in ["guidance", "g"]:
+    guidance_value = args[2] if len(args) > 2 else ""
+    guidance_value = guidance_value.strip().lower()
+
+    if guidance_value in ["", "off", "no", "clear", "false", "0"]:
+      ch.set_cvar(guidance_pref_cvar, "")
+      desc = [
+        "Guidance preference cleared.",
+        "",
+        "Add `guidance` or `g` to a run when you need it."
+      ]
+      return build_output("Guidance Cleared", desc, [], footer=footer)
+
+    ch.set_cvar(guidance_pref_cvar, "true")
+    desc = [
+      "Guidance will now be included on every run.",
+      "",
+      f"Use `{alias_cmd} set guidance off` to disable it."
+    ]
+    return build_output("Guidance Preference Saved", desc, [], footer=footer)
+
+  desc = [f"Set your default {activity_name.lower()} behavior:", ""]
+  if supports_mode:
+    desc.append(f"- `{alias_cmd} set simple`")
+    desc.append(f"- `{alias_cmd} set complex`")
+  desc.append(f"- `{alias_cmd} set bonus 1d4` (use `clear` to remove)")
+  desc.append(f"- `{alias_cmd} set guidance on/off`")
+  return build_output(f"{activity_name} Settings", desc, [], footer=footer)
 
 # -----------------------------
 # Bag Helpers

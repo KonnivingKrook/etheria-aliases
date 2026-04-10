@@ -362,3 +362,45 @@ class TestCalcRewardPoints:
     def test_failure_lines_indicate_nothing_gained(self, g):
         result = g['calc_reward_points'](False)
         assert any("No resources" in line for line in result["lines"])
+
+
+# ---------------------------------------------------------------------------
+# _best_tool_ability
+# ---------------------------------------------------------------------------
+
+class TestBestToolAbility:
+    def test_single_string_passthrough(self, g):
+        ch = MockCharacter(stats=MockStats(str=3))
+        assert g['_best_tool_ability'](ch, "str") == "str"
+
+    def test_single_element_list(self, g):
+        ch = MockCharacter(stats=MockStats(str=3))
+        assert g['_best_tool_ability'](ch, ["str"]) == "str"
+
+    def test_list_picks_higher_mod(self, g):
+        ch = MockCharacter(stats=MockStats(str=0, int=5))
+        assert g['_best_tool_ability'](ch, ["str", "int"]) == "int"
+
+    def test_list_picks_higher_mod_reversed_order(self, g):
+        ch = MockCharacter(stats=MockStats(str=0, dex=4))
+        assert g['_best_tool_ability'](ch, ["dex", "str"]) == "dex"
+
+    def test_tie_goes_to_first(self, g):
+        ch = MockCharacter(stats=MockStats(str=2, int=2))
+        assert g['_best_tool_ability'](ch, ["str", "int"]) == "str"
+
+    def test_empty_list_defaults_to_str(self, g):
+        ch = MockCharacter(stats=MockStats())
+        assert g['_best_tool_ability'](ch, []) == "str"
+
+    def test_none_defaults_to_str(self, g):
+        ch = MockCharacter(stats=MockStats())
+        assert g['_best_tool_ability'](ch, None) == "str"
+
+    def test_result_is_lowercase(self, g):
+        ch = MockCharacter(stats=MockStats(wis=3, int=1))
+        assert g['_best_tool_ability'](ch, ["WIS", "INT"]) == "wis"
+
+    def test_negative_mod_still_compared(self, g):
+        ch = MockCharacter(stats=MockStats(str=-2, dex=0))
+        assert g['_best_tool_ability'](ch, ["str", "dex"]) == "dex"

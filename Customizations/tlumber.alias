@@ -50,10 +50,23 @@ bag_cvar = (cfg.get("bag_cvar") or "bags")
 
 args = [a.lower() for a in &ARGS&]
 cmd = args[0] if args else ""
+parse = argparse(&ARGS&)
 
 use_adv = "adv" in args
 use_dis = "dis" in args
 use_guidance = ("guidance" in args) or ("g" in args)
+
+bonus_expr = gather.first_str(parse.get("b"))
+
+BONUS_PREF_CVAR = "lumber_bonus_pref"
+GUIDANCE_PREF_CVAR = "lumber_guidance_pref"
+
+stored_bonus = (ch.get_cvar(BONUS_PREF_CVAR) or "").strip()
+stored_guidance = (ch.get_cvar(GUIDANCE_PREF_CVAR) or "").strip().lower() in ["1", "true", "yes", "on"]
+if not bonus_expr:
+    bonus_expr = stored_bonus
+if not use_guidance and stored_guidance:
+    use_guidance = True
 
 # Find skill override
 find_override = ""
@@ -63,10 +76,14 @@ elif ("survival" in args) or ("surv" in args):
     find_override = "survival"
 
 # Tier targeting: allow common/uncommon/rare as first arg
-excluded = ["help", "?", "nat", "nature", "surv", "survival", "adv", "dis", "g", "guidance"]
+excluded = ["help", "?", "set", "nat", "nature", "surv", "survival", "adv", "dis", "g", "guidance"]
 tier_cmd = cmd if (cmd and cmd not in excluded) else ""
 
 tiers = (data.get("tiers") or {})
+
+# ---- set ----
+if cmd == "set":
+    return gather.handle_set_cmd(ch, args, None, BONUS_PREF_CVAR, GUIDANCE_PREF_CVAR, activity_name="Lumber", alias_cmd="!lumber", footer=FOOTER, supports_mode=False)
 
 # ---- help ----
 if cmd in ["help", "?"]:
@@ -78,9 +95,12 @@ if cmd in ["help", "?"]:
     lines.append("**Usage**")
     lines.append("- `!lumber` (random tier)")
     lines.append(f"- `!lumber <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!lumber set bonus <dice>` to keep a default `-b` bonus.")
+    lines.append("- `!lumber set guidance on|off` to toggle automatic guidance.")
     lines.append("- Optional: `nat` or `surv` to choose the find skill")
     lines.append("- Optional: `adv` or `dis`")
     lines.append("- Optional: `guidance` / `g`")
+    lines.append("- Optional: add a bonus to rolls (e.g. `-b 1d4`)")
     lines.append("")
     lines.append("**Bags**")
     lines.append(f"- Harvest goes into your `{bag_label}` bag (auto-created if needed).")
@@ -103,9 +123,9 @@ dc_val = sel["dc_val"]
 
 # ---- Find check (uses tier DC) ----
 if find_override:
-    find = gather.roll_check(ch, skill=find_override, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance)
+    find = gather.roll_check(ch, skill=find_override, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance, bonus_expr=bonus_expr)
 else:
-    find = gather.roll_check_best(ch, find_skills, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance)
+    find = gather.roll_check_best(ch, find_skills, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance, bonus_expr=bonus_expr)
 
 if not find["ok"]:
     desc = []
@@ -125,6 +145,7 @@ ex = gather.roll_extraction_best(
     adv=use_adv,
     dis=use_dis,
     guidance=use_guidance,
+    bonus_expr=bonus_expr,
     tool_name=tool_options,
     tool_ability=tool_ability,
     skill_name=harvest_skill,

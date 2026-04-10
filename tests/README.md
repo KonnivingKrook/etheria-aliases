@@ -36,7 +36,9 @@ pytest tests/test_aliases.py::TestMiningAlias::test_expertise_appears_in_reward_
 |---|---|
 | `test_gather_lib2.py` | Unit tests for every public function in `gather_lib2` — tier selection, skill resolution, roll checks, reward calculation, etc. |
 | `test_cd_lib.py` | Unit tests for `cd_lib` — timer core, `gate`, `gate_cvar`, `gate_any`, save/load. |
-| `test_aliases.py` | Smoke tests for the production aliases (`Customizations/tmine.alias`, `Customizations/tlumber.alias`) — exercises the full pipeline end-to-end with mocked character data and fixed dice rolls. |
+| `test_mining_alias.py` | Smoke tests for `Customizations/tmine.alias` — full pipeline with mocked character data and fixed dice rolls. |
+| `test_lumber_alias.py` | Smoke tests for `Customizations/tlumber.alias` — full pipeline with mocked character data and fixed dice rolls. |
+| `test_herb_alias.py` | Smoke tests for `Customizations/therb.alias` — includes disabled tier, simple/complex mode, named herb nodes, and set subcommand cvar verification. |
 
 ## How it works
 
@@ -63,7 +65,7 @@ The preprocessor handles Draconic-specific syntax before `exec()`:
 
 **For a library function** — add a class to `test_gather_lib2.py` or `test_cd_lib.py` and use the `g` or `cooldowns` fixture from `conftest.py`.
 
-**For an alias scenario** — add a method to the relevant class in `test_aliases.py` and call `run_alias(ALIAS_PATH, args, character=..., vroll_total=...)`. The return value is the string the alias would post to Discord.
+**For an alias scenario** — add a method to the relevant class in the alias test file (e.g. `test_mining_alias.py`) and call `run_alias(ALIAS_PATH, args, character=..., vroll_total=...)`. The return value is the string the alias would post to Discord. For a new alias, create a new `test_<name>_alias.py` file following the same pattern.
 
 **To mock character data** — build a `MockCharacter` with `MockSkills` and `MockStats`:
 

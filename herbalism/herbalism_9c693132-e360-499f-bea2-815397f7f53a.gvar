@@ -24,9 +24,9 @@
   "config": {
     "cooldown": 7200,
     "tool_names": ["herbalism kit", "brewer's kit"],
-    "tool_ability": "wis",
+    "tool_ability": ["wis", "int"],
     "harvest_skill": "nature",
-    "find_skill_default": "nature",
+    "find_skills": ["nature", "survival"],
     "tier_weights": {
       "common":    60,
       "uncommon":  25,

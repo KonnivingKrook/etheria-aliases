@@ -315,6 +315,47 @@ def load_cd_lib(character=None):
     )
 
 
+# ---------------------------------------------------------------------------
+# Shared gather-alias fixtures
+# ---------------------------------------------------------------------------
+
+# Fixed epoch used by all gather alias tests (import this in each test file)
+GATHER_NOW = 1_700_000_000
+
+@pytest.fixture
+def fresh_ch():
+    """Character with no cooldown history and moderate skills."""
+    return MockCharacter(
+        skills=MockSkills(
+            athletics=MockSkill(prof=2, value=9),
+            nature=MockSkill(prof=1, value=4),
+            survival=MockSkill(prof=0, value=2),
+        ),
+        cvars={},
+        stats=MockStats(prof_bonus=3, str=4),
+    )
+
+
+@pytest.fixture
+def cooled_down_ch():
+    """Character currently on cooldown (last_hunt set 30 minutes ago)."""
+    return MockCharacter(
+        skills=MockSkills(
+            athletics=MockSkill(prof=1, value=5),
+            nature=MockSkill(prof=1, value=4),
+        ),
+        cvars={"last_hunt": str(GATHER_NOW - 1800)},  # 30 min ago, 2h cooldown active
+        stats=MockStats(prof_bonus=3),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Alias runner
+# ---------------------------------------------------------------------------
+
+_GVAR_SEARCH_DIRS = ['mining', 'lumber', 'herbalism']
+
+
 def run_alias(filepath, args, *, character=None, vroll_total=10, gvar_overrides=None):
     """
     Execute an alias file and return its output string.
@@ -346,10 +387,12 @@ def run_alias(filepath, args, *, character=None, vroll_total=10, gvar_overrides=
     def _get_gvar(uuid):
         if uuid in overrides:
             return json.dumps(overrides[uuid])
-        for search_dir in ['mining', 'lumber']:
-            for gvar_file in (REPO_ROOT / search_dir).glob('*.gvar'):
-                if uuid in gvar_file.name:
-                    return gvar_file.read_text()
+        for search_dir in _GVAR_SEARCH_DIRS:
+            gvar_dir = REPO_ROOT / search_dir
+            if gvar_dir.is_dir():
+                for gvar_file in gvar_dir.glob('*.gvar'):
+                    if uuid in gvar_file.name:
+                        return gvar_file.read_text()
         return '{}'
 
     ns = build_namespace(character=ch, vroll_total=vroll_total, extra={

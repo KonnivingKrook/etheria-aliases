@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "description": "Mining (tier-only). No named nodes; tier chosen by command or tier_weights. Rewards are generic tier-based ore.",
+  "description": "Mining nodes for Shardspire mining alias",
   "tiers": {
     "basic": { "dc": 11, "label": "Basic", "enabled": true },
     "common": { "dc": 13, "label": "Common", "enabled": true },
@@ -26,7 +26,7 @@
   "config": {
     "cooldown": 7200,
     "tool_names": ["mason's tools"],
-    "tool_ability": "str",
+    "tool_ability": ["str"],
     "harvest_skill": "athletics",
     "find_skills": ["nature", "survival"],
     "tier_weights": {

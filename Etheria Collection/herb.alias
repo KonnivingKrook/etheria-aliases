@@ -126,70 +126,7 @@ if not use_guidance and stored_guidance:
 # Subcommand: set simple|complex/bonus/guidance
 # -----------------------------
 if cmd == "set":
-    target = args[1] if len(args) > 1 else ""
-    target = target.strip().lower()
-
-    if target in ["simple", "s", "complex", "c"]:
-        new_mode = MODE_SIMPLE if target in ["simple", "s"] else MODE_COMPLEX
-        ch.set_cvar(MODE_PREF_CVAR, new_mode)
-        desc = [
-            f"Your default herbalism mode is now **{new_mode.title()}**.",
-            "",
-            "Use `-s` or `-c` on a command to override it for a single run."
-        ]
-        return gather.build_output("Herbalism Mode Saved", desc, [], footer=FOOTER)
-
-    if target in ["bonus", "b"]:
-        bonus_value = args[2] if len(args) > 2 else ""
-        bonus_value = bonus_value.strip()
-
-        if not bonus_value or bonus_value.lower() in ["clear", "none", "off", "0"]:
-            ch.set_cvar(BONUS_PREF_CVAR, "")
-            desc = [
-                "Default bonus dice cleared.",
-                "",
-                "Future runs will only use `-b` when provided."
-            ]
-            return gather.build_output("Herbalism Bonus Cleared", desc, [], footer=FOOTER)
-
-        ch.set_cvar(BONUS_PREF_CVAR, bonus_value)
-        desc = [
-            f"Default bonus dice set to `{bonus_value}`.",
-            "",
-            "You can still override it per run with `-b`."
-        ]
-        return gather.build_output("Herbalism Bonus Saved", desc, [], footer=FOOTER)
-
-    if target in ["guidance", "g"]:
-        guidance_value = args[2] if len(args) > 2 else ""
-        guidance_value = guidance_value.strip().lower()
-
-        if guidance_value in ["", "off", "no", "clear", "false", "0"]:
-            ch.set_cvar(GUIDANCE_PREF_CVAR, "")
-            desc = [
-                "Guidance preference cleared.",
-                "",
-                "Add `guidance` or `g` to a run when you need it."
-            ]
-            return gather.build_output("Guidance Cleared", desc, [], footer=FOOTER)
-
-        ch.set_cvar(GUIDANCE_PREF_CVAR, "true")
-        desc = [
-            "Guidance will now be included on every run.",
-            "",
-            "Use `!herb set guidance off` to disable it."
-        ]
-        return gather.build_output("Guidance Preference Saved", desc, [], footer=FOOTER)
-
-    desc = [
-        "Set your default herbalism behavior:",
-        "",
-        "- `!herb set simple`",
-        "- `!herb set complex`",
-        "- `!herb set bonus 1d4` (use `clear` to remove)",
-        "- `!herb set guidance on/off`",
-    ]
-    return gather.build_output("Herbalism Settings", desc, [], footer=FOOTER)
+    return gather.handle_set_cmd(ch, args, MODE_PREF_CVAR, BONUS_PREF_CVAR, GUIDANCE_PREF_CVAR, activity_name="Herbalism", alias_cmd="!herb", footer=FOOTER)
 
 # -----------------------------
 # Help: enabled tiers only, sorted by DC asc
