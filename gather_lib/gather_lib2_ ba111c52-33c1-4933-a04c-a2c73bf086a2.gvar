@@ -1,6 +1,8 @@
 # ---------------------------------------------------------------------------
 # GatherLib
 # ---------------------------------------------------------------------------
+GATHERLIB_VERSION = "2.0"
+
 using(
   baglib="5f1ffcbf-3f59-4396-b402-1ca0f02d6bbb"
 )
@@ -37,8 +39,10 @@ def build_output(
   thumb_url=None,
   time=None,
   color=None,
-  ch=character()
+  ch=None
 ):
+  if ch is None:
+    ch = character()
   if thumb_url is None:
     thumb_url = ch.image
   if color is None:
@@ -236,13 +240,48 @@ def roll_check(ch, *, skill, dc, adv=False, dis=False, guidance=False, bonus_exp
     "dc": int(dc)
   }
 
+def roll_check_best(ch, skills, *, dc, adv=False, dis=False, guidance=False, bonus_expr=""):
+  best_name = None
+  best_obj = None
+  best_t = -1
+  best_mod = -99
+
+  for sname in (skills or []):
+    obj = resolve_skill_or_none(ch, sname)
+    if not obj:
+      continue
+    t = skill_tier(obj)
+    try:
+      mod = int(obj.value)
+    except:
+      mod = 0
+    if t > best_t or (t == best_t and mod > best_mod):
+      best_t = t
+      best_mod = mod
+      best_name = sname
+      best_obj = obj
+
+  if not best_obj:
+    name = str((skills or ["unknown"])[0]).title()
+    return {"name": name, "roll": None, "ok": False, "error": "No valid skill found"}
+
+  expr = build_check_expr(best_obj, adv, dis, guidance, bonus_expr)
+  r = vroll(expr)
+  return {
+    "name": best_name.title(),
+    "roll": r,
+    "ok": r.total >= int(dc),
+    "expr": expr,
+    "dc": int(dc)
+  }
+
 # -----------------------------
 # Proficiency / Expertise Helpers
 # -----------------------------
 def _norm(s):
   s = (s or "").strip().lower()
   s = s.strip("\"").strip("'")
-  s = s.replace("’", "'")
+  s = s.replace("'", "'")
   s = " ".join(s.split())
   return s
 
@@ -259,31 +298,12 @@ def tool_tier_from_cvars(ch, tool_name, e_cvar="eTools", p_cvar="pTools"):
   return 0
 
 def skill_tier(skill_obj):
-  prof = False
-  exp = False
-
   try:
-    prof = bool(skill_obj.prof)
-  except "NotDefined":
-    prof = False
-  if not prof:
-    try:
-      prof = bool(skill_obj.proficient)
-    except "NotDefined":
-      prof = False
-
-  try:
-    exp = bool(skill_obj.expert)
-  except "NotDefined":
-    exp = False
-  if not exp:
-    try:
-      exp = bool(skill_obj.expertise)
-    except "NotDefined":
-      exp = False
-
-  if exp: return 2
-  if prof: return 1
+    prof_val = float(skill_obj.prof)
+  except:
+    prof_val = 0
+  if prof_val >= 2: return 2
+  if prof_val >= 1: return 1
   return 0
 
 def choose_best_check(tool_tier, skill_tier_val, prefer_tools_on_tie=True):
@@ -408,7 +428,7 @@ def extraction_flags(result):
   return {"prof": tier >= 1, "exp": tier >= 2}
 
 # -----------------------------
-# Rewards (KEEP v1 signature)
+# Rewards
 # -----------------------------
 def calc_reward_points(extracted, adv=False, dis=False, prof=False, exp=False, base_label="Tool"):
   if not extracted:
@@ -448,7 +468,9 @@ def _bag_slug(name):
 def _bag_pref_key(activity):
   return f"gather_bag_{_bag_slug(activity or 'gather')}"
 
-def ensure_activity_bag(ch=character(), *, activity="gather", bag_label=None, bag_cvar="bags"):
+def ensure_activity_bag(ch=None, *, activity="gather", bag_label=None, bag_cvar="bags"):
+  if ch is None:
+    ch = character()
   label = (bag_label or activity or "Gather").strip() or "Gather"
   pref_key = _bag_pref_key(activity or label)
 
@@ -474,7 +496,9 @@ def ensure_activity_bag(ch=character(), *, activity="gather", bag_label=None, ba
 
   return {"ok": True, "bag_name": actual_name, "manager": mgr}
 
-def add_rewards_to_bag(ch=character(), *, activity="gather", bag_label=None, bag_cvar="bags", rewards=None):
+def add_rewards_to_bag(ch=None, *, activity="gather", bag_label=None, bag_cvar="bags", rewards=None):
+  if ch is None:
+    ch = character()
   rewards = rewards or {}
   deltas = {}
 

@@ -32,7 +32,10 @@ tool_options = [t for t in (tool_options or []) if t] or ["mason's tools"]
 
 tool_ability = cfg.get("tool_ability", "str")
 harvest_skill = cfg.get("harvest_skill", "athletics")
-find_skill_default = (cfg.get("find_skill_default") or "nature").lower()
+find_skills_raw = cfg.get("find_skills") or ["nature"]
+find_skills = [find_skills_raw] if typeof(find_skills_raw) == "str" else [s for s in (find_skills_raw or []) if s]
+if not find_skills:
+    find_skills = ["nature"]
 
 reward_label = cfg.get("reward_label", "Pickaxe")
 bag_label = cfg.get("bag_label", "Mining")
@@ -183,29 +186,29 @@ if cmd == "set":
         desc = [
             "Guidance will now be included on every run.",
             "",
-            "Use `!tmine set guidance off` to disable it."
+            "Use `!mining set guidance off` to disable it."
         ]
         return gather.build_output("Guidance Preference Saved", desc, [], footer=FOOTER)
 
     desc = [
         "Set your default mining behavior:",
         "",
-        "- `!tmine set simple`",
-        "- `!tmine set complex`",
-        "- `!tmine set bonus 1d4` (use `clear` to remove)",
-        "- `!tmine set guidance on/off`",
+        "- `!mining set simple`",
+        "- `!mining set complex`",
+        "- `!mining set bonus 1d4` (use `clear` to remove)",
+        "- `!mining set guidance on/off`",
     ]
     return gather.build_output("Mining Settings", desc, [], footer=FOOTER)
 
 # Version 2!!
 """
-`!tmine set simple|complex`      - sets the character default mode for mining results.
-`!tmine set bonus <diceExp>`     - sets a default extra bonus (use `clear` to remove).
-`!tmine set guidance on|off`     - toggles automatic guidance per run.
-`!tmine`                         - weighted random roll against all tiers
-`!tmine b|c|u|r|v|l`             - mines a specific tier with character settings (default: simple)
-`!tmine b|c|u|r|v|l -c|complex`  - mines specific tier with override for complex
-`!tmine b|c|u|r|v|l -s|simple`   - mines specific tier with override for simple
+`!mining set simple|complex`      - sets the character default mode for mining results.
+`!mining set bonus <diceExp>`     - sets a default extra bonus (use `clear` to remove).
+`!mining set guidance on|off`     - toggles automatic guidance per run.
+`!mining`                         - weighted random roll against all tiers
+`!mining b|c|u|r|v|l`             - mines a specific tier with character settings (default: simple)
+`!mining b|c|u|r|v|l -c|complex`  - mines specific tier with override for complex
+`!mining b|c|u|r|v|l -s|simple`   - mines specific tier with override for simple
 """
 
 # -----------------------------
@@ -223,16 +226,16 @@ if cmd in ["help", "list", "?"]:
     lines.append("**Mining**")
     lines.append("")
     lines.append("**Usage**")
-    lines.append("- `!tmine` (weighted random tier)")
-    lines.append(f"- `!tmine <tier>` where tier is one of: `{tier_names}`")
-    lines.append("- `!tmine set simple|complex` to store your default mode.")
-    lines.append("- `!tmine set bonus <dice>` to keep a default `-b` bonus.")
-    lines.append("- `!tmine set guidance on|off` to toggle automatic guidance.")
+    lines.append("- `!mining` (weighted random tier)")
+    lines.append(f"- `!mining <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!mining set simple|complex` to store your default mode.")
+    lines.append("- `!mining set bonus <dice>` to keep a default `-b` bonus.")
+    lines.append("- `!mining set guidance on|off` to toggle automatic guidance.")
     lines.append("- Add `-c|complex` to roll a named node inside the tier.")
     lines.append("- Add `-s|simple` to force tier-only rewards (default).")
     lines.append("- Optional: add `adv` or `dis`")
     lines.append("- Optional: add `guidance|g`")
-    lines.append("- Optional: override find skill (e.g. `!tmine surv`)")
+    lines.append("- Optional: override find skill (e.g. `!mining surv`)")
     lines.append("- Optional: add a bonus to rolls (e.g. `-b 1d4`)")
     lines.append("")
     lines.append("**Bags**")
@@ -257,11 +260,11 @@ if not gate["ok"]:
 # -----------------------------
 # Find skill override
 # -----------------------------
-find_skill = find_skill_default
+find_override = ""
 if ("nature" in args) or ("nat" in args):
-    find_skill = "nature"
+    find_override = "nature"
 elif ("survival" in args) or ("surv" in args):
-    find_skill = "survival"
+    find_override = "survival"
 
 # -----------------------------
 # Explicit tier disabled check
@@ -318,17 +321,12 @@ pass_text = format_text((node_entry.get("pass") if complex_active else pass_temp
 fail_text = format_text((node_entry.get("fail") if complex_active else fail_template), tier, tier_label, display_node_name)
 
 # -----------------------------
-# Find check 
+# Find check
 # -----------------------------
-find = gather.roll_check(
-    ch,
-    skill=find_skill,
-    dc=dc_val,
-    adv=use_adv,
-    dis=use_dis,
-    guidance=use_guidance,
-    bonus_expr=bonus_expr
-)
+if find_override:
+    find = gather.roll_check(ch, skill=find_override, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance, bonus_expr=bonus_expr)
+else:
+    find = gather.roll_check_best(ch, find_skills, dc=dc_val, adv=use_adv, dis=use_dis, guidance=use_guidance, bonus_expr=bonus_expr)
 
 if not find.get("ok"):
     title = f"Mining Report - {tier_label} (DC {dc_val})"
@@ -342,7 +340,7 @@ if not find.get("ok"):
 
     desc.extend([
         "",
-        f"**Searching** ({find_skill.title()}):",
+        f"**Searching** ({find['name']}):",
         f"  {search_result}",
         "",
         "**Harvesting** (Not Attempted):",
@@ -421,7 +419,7 @@ extract_roll = str(extract_check)
 
 desc_lines.extend([
     "",
-    f"**Searching** ({find_skill.title()}):",
+    f"**Searching** ({find['name']}):",
     f"  {find_roll}",
     "",
     f"**Working the Vein** \n({extract_name}):",

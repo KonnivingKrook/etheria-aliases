@@ -28,6 +28,6 @@
       "rare": 5
     },
     "default_tier": "common",
-    "find_skill_default": "nature"
+    "find_skills": ["nature", "survival"]
   }
 }
