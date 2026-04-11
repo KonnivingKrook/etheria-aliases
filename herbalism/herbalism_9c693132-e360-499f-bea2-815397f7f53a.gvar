@@ -2,7 +2,7 @@
   "version": 1,
   "description": "Herbalism tier and config data. Simple mode yields generic tier herbs; complex mode yields a randomly selected specific named herb from that tier.",
   "tiers": {
-    "common":    { "dc": 16, "label": "Common",    "enabled": true,  "price": 25,   "note": "Found in areas surrounding the settlement." },
+    "common":    { "dc": 13, "label": "Common",    "enabled": true,  "price": 25,   "note": "Found in areas surrounding the settlement." },
     "uncommon":  { "dc": 16, "label": "Uncommon",  "enabled": true,  "price": 100,  "note": "Found in areas surrounding the settlement." },
     "rare":      { "dc": 21, "label": "Rare",       "enabled": true,  "price": 500,  "note": "Found in areas surrounding the settlement." },
     "very_rare": { "dc": 24, "label": "Very Rare",  "enabled": false,  "price": 2500, "note": "Found in areas surrounding the settlement." },
