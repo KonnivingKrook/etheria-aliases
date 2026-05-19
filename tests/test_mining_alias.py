@@ -6,7 +6,7 @@ Shared fixtures (fresh_ch, cooled_down_ch) come from conftest.
 """
 
 import pytest
-from conftest import GATHER_NOW, set_mock_time, reset_mock_time, run_alias
+from conftest import GATHER_NOW, set_mock_time, reset_mock_time, run_alias, MockCharacter, MockSkill, MockSkills, MockStats
 
 MINING_ALIAS = "Etheria_Collection/mining.alias"
 
@@ -27,6 +27,11 @@ class TestMiningHelp:
     def test_help_mentions_set_commands(self, fresh_ch):
         output = run_alias(MINING_ALIAS, ["help"], character=fresh_ch)
         assert "set" in output
+
+    def test_help_shows_nodes_per_tier(self, fresh_ch):
+        output = run_alias(MINING_ALIAS, ["help"], character=fresh_ch)
+        # Stone is a node in the basic tier; nodes should now appear in tier listings
+        assert "Stone" in output
 
 
 class TestMiningCooldown:
@@ -92,6 +97,33 @@ class TestMiningComplexMode:
         fresh_ch.set_cvar("tmine_mode_pref", "complex")
         output = run_alias(MINING_ALIAS, ["basic", "simple"], character=fresh_ch, vroll_total=20)
         assert "Basic Ore" in output
+
+
+class TestMiningFindSkill:
+    def test_find_skill_name_appears_in_output(self, fresh_ch):
+        output = run_alias(MINING_ALIAS, [], character=fresh_ch, vroll_total=20)
+        assert "Searching" in output
+
+    def test_best_skill_wins_when_survival_higher(self):
+        # Give survival expertise (tier 2) vs nature proficient (tier 1) — survival should win
+        ch = MockCharacter(
+            skills=MockSkills(
+                nature=MockSkill(prof=1, value=4),
+                survival=MockSkill(prof=2, value=8),
+            ),
+            stats=MockStats(prof_bonus=3),
+        )
+        output = run_alias(MINING_ALIAS, [], character=ch, vroll_total=20)
+        assert "Survival" in output
+
+    def test_explicit_nat_override_uses_nature(self, fresh_ch):
+        # survival is lower on fresh_ch, but nat arg forces nature
+        output = run_alias(MINING_ALIAS, ["nat"], character=fresh_ch, vroll_total=20)
+        assert "Nature" in output
+
+    def test_explicit_surv_override_uses_survival(self, fresh_ch):
+        output = run_alias(MINING_ALIAS, ["surv"], character=fresh_ch, vroll_total=20)
+        assert "Survival" in output
 
 
 class TestMiningSetSubcommand:

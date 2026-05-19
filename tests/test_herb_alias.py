@@ -43,6 +43,11 @@ class TestHerbHelp:
         output = run_alias(HERB_ALIAS, ["help"], character=fresh_ch)
         assert "set" in output
 
+    def test_help_shows_nodes_per_tier(self, fresh_ch):
+        output = run_alias(HERB_ALIAS, ["help"], character=fresh_ch)
+        # Stone is a node in the basic tier; nodes should now appear in tier listings
+        assert "Silverleaf" in output
+
 
 class TestHerbCooldown:
     def test_cooldown_blocks_when_active(self, cooled_down_ch):
