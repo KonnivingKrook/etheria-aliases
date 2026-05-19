@@ -1,5 +1,5 @@
 """
-Smoke tests for the herb alias (Customizations/therb.alias).
+Smoke tests for the herb alias (Etheria_Collection/herb.alias).
 
 End-to-end tests using mocked character data and controlled dice rolls.
 Shared fixtures (fresh_ch, cooled_down_ch) come from conftest.
@@ -14,7 +14,7 @@ Herb-specific scenarios not covered by mining/lumber:
 import pytest
 from conftest import GATHER_NOW, set_mock_time, reset_mock_time, run_alias, MockCharacter, MockSkills, MockSkill, MockStats
 
-HERB_ALIAS = "Customizations/therb.alias"
+HERB_ALIAS = "Etheria_Collection/herb.alias"
 
 
 @pytest.fixture(autouse=True)

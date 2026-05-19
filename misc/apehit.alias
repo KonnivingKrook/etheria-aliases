@@ -1,0 +1,54 @@
+embed
+<drac2>
+args = &ARGS&
+ch = character()
+cmb = combat()
+ward_name = "Arcane Ward - Hit Points"
+ape_name = Name = "Giant Ape"
+
+if len(args) < 1:
+    T = "Ape Hit Error"
+    D = 'Usage: `!apehit <ape> <damage>`\nExample: `!apehit "Giant Ape" 20`'
+    F = ""
+elif not cmb:
+    T = "Ape Hit Error"
+    D = "No active combat."
+    F = ""
+else:
+    # ape_name = args[0]
+    # damage = int(args[1])
+    damage = int(args[0])
+    ape = cmb.get_combatant(ape_name)
+
+    if not ape:
+        T = "Ape Hit Error"
+        D = f"Could not find `{ape_name}` in initiative."
+        F = ""
+    else:
+        ward = ch.get_cc(ward_name) if ch.cc_exists(ward_name) else 0
+        thp = ch.temp_hp or 0
+        remaining = damage
+
+        ward_absorb = min(ward, remaining)
+        remaining -= ward_absorb
+        if ward_absorb:
+            ch.set_cc(ward_name, ward - ward_absorb)
+
+        aoa_absorb = min(thp, remaining)
+        remaining -= aoa_absorb
+        if aoa_absorb:
+            ch.set_temp_hp(thp - aoa_absorb)
+
+        refund = ward_absorb + aoa_absorb
+        if refund:
+            ape.modify_hp(refund, ignore_temp=True)
+
+        T = "Polymorph Damage Correction"
+        D = f"{ape.name} was refunded **{refund} HP**."
+        F = f"Incoming|{damage}|inline\nWard|{ward_absorb} / {ward}|inline\nAoA THP|{aoa_absorb} / {thp}|inline\nLeft on Ape|{remaining}|inline\nWard Left|{ward - ward_absorb}|inline\nAoA Left|{thp - aoa_absorb}|inline"
+</drac2>
+-title "{{T}}"
+-desc "{{D}}"
+{{'\n'.join(['-f "' + f + '"' for f in F.split('\n')]) if F else ""}}
+-color <color>
+-thumb <image>

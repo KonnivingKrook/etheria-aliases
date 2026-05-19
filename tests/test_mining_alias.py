@@ -1,5 +1,5 @@
 """
-Smoke tests for the mining alias (Customizations/tmine.alias).
+Smoke tests for the mining alias (Etheria_Collection/mining.alias).
 
 End-to-end tests using mocked character data and controlled dice rolls.
 Shared fixtures (fresh_ch, cooled_down_ch) come from conftest.
@@ -8,7 +8,7 @@ Shared fixtures (fresh_ch, cooled_down_ch) come from conftest.
 import pytest
 from conftest import GATHER_NOW, set_mock_time, reset_mock_time, run_alias
 
-MINING_ALIAS = "Customizations/tmine.alias"
+MINING_ALIAS = "Etheria_Collection/mining.alias"
 
 
 @pytest.fixture(autouse=True)

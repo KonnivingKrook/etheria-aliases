@@ -1,8 +1,7 @@
 embed
 <drac2>
 ch = character()
-# data = load_json(get_gvar("da63c2ff-d17b-4aa3-ab5c-61575b1b386c"))
-data = load_json(get_gvar("31e85441-4115-48a9-9885-b02a74c74bfa"))  # New version for testing
+data = load_json(get_gvar("9c693132-e360-499f-bea2-815397f7f53a"))  # Upload herbalism_gvar.gvar and paste the UUID here
 
 using(
     cdlib="cc413a98-489e-49f9-aac2-907993761792",
@@ -19,8 +18,7 @@ tier_aliases = data.get("tier_aliases") or {}
 # Defaults / Config
 # -----------------------------
 cooldown = int(cfg.get("cooldown", 7200))
-# cooldown = int(3)
-tool_options = cfg.get("tool_names") or ["mason's tools"]
+tool_options = cfg.get("tool_names") or ["herbalism kit"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
     tool_options = [tool_options]
@@ -28,20 +26,20 @@ elif tool_type in ["list", "tuple", "SafeList", "SafeTuple"]:
     tool_options = [t for t in (tool_options or []) if t]
 else:
     tool_options = [tool_options] if tool_options else []
-tool_options = [t for t in (tool_options or []) if t] or ["mason's tools"]
+tool_options = [t for t in (tool_options or []) if t] or ["herbalism kit"]
 
-tool_ability = cfg.get("tool_ability", "str")
-harvest_skill = cfg.get("harvest_skill", "athletics")
+tool_ability = cfg.get("tool_ability", "wis")
+harvest_skill = cfg.get("harvest_skill", "nature")
 find_skill_default = (cfg.get("find_skill_default") or "nature").lower()
 
-reward_label = cfg.get("reward_label", "Pickaxe")
-bag_label = cfg.get("bag_label", "Mining")
+reward_label = cfg.get("reward_label", "Herbalism Kit")
+bag_label = cfg.get("bag_label", "Herbalism")
 bag_cvar = cfg.get("bag_cvar", "bags")
 
-reward_item_template = cfg.get("reward_item_template", "{tier_label} Ore")
-found_template = cfg.get("found_template", "You find a workable **{tier_label}** vein in the rock.")
-pass_template = cfg.get("pass_template", "You manage to extract usable material from the vein.")
-fail_template = cfg.get("fail_template", "The vein crumbles and you can't recover anything usable.")
+reward_item_template = cfg.get("reward_item_template", "{tier_label} Herb")
+found_template = cfg.get("found_template", "You search the undergrowth and spot a **{tier_label}** herb.")
+pass_template = cfg.get("pass_template", "You carefully harvest the herb, preserving its potency.")
+fail_template = cfg.get("fail_template", "You damage the plant during collection and it loses its properties.")
 
 def format_text(template, tier, tier_label, node_name=""):
     text = (template or "")
@@ -49,7 +47,7 @@ def format_text(template, tier, tier_label, node_name=""):
     text = text.replace("{node}", node_name or "")
     return text
 
-FOOTER = "!mining help | @konnivingkrook#0"
+FOOTER = "!herb help | @konnivingkrook#0"
 
 # -----------------------------
 # Args
@@ -98,9 +96,9 @@ bonus_expr = _first_str(parse.get("b"))
 
 MODE_SIMPLE = "simple"
 MODE_COMPLEX = "complex"
-MODE_PREF_CVAR = "tmine_mode_pref"
-BONUS_PREF_CVAR = "tmine_bonus_pref"
-GUIDANCE_PREF_CVAR = "tmine_guidance_pref"
+MODE_PREF_CVAR = "herb_mode_pref"
+BONUS_PREF_CVAR = "herb_bonus_pref"
+GUIDANCE_PREF_CVAR = "herb_guidance_pref"
 
 # Load stored preference (per character)
 mode_pref = (ch.get_cvar(MODE_PREF_CVAR) or MODE_SIMPLE).strip().lower()
@@ -128,18 +126,7 @@ if not use_guidance and stored_guidance:
 # Subcommand: set simple|complex/bonus/guidance
 # -----------------------------
 if cmd == "set":
-    return gather.handle_set_cmd(ch, args, MODE_PREF_CVAR, BONUS_PREF_CVAR, GUIDANCE_PREF_CVAR, activity_name="Mining", alias_cmd="!tmine", footer=FOOTER)
-
-# Version 2!!
-"""
-`!tmine set simple|complex`      - sets the character default mode for mining results.
-`!tmine set bonus <diceExp>`     - sets a default extra bonus (use `clear` to remove).
-`!tmine set guidance on|off`     - toggles automatic guidance per run.
-`!tmine`                         - weighted random roll against all tiers
-`!tmine b|c|u|r|v|l`             - mines a specific tier with character settings (default: simple)
-`!tmine b|c|u|r|v|l -c|complex`  - mines specific tier with override for complex
-`!tmine b|c|u|r|v|l -s|simple`   - mines specific tier with override for simple
-"""
+    return gather.handle_set_cmd(ch, args, MODE_PREF_CVAR, BONUS_PREF_CVAR, GUIDANCE_PREF_CVAR, activity_name="Herbalism", alias_cmd="!herb", footer=FOOTER)
 
 # -----------------------------
 # Help: enabled tiers only, sorted by DC asc
@@ -151,41 +138,58 @@ if tiers:
 else:
     tier_names = "none"
 
+nodes_by_tier = {}
+for node in (data.get("nodes") or []):
+    t_key = (node.get("tier") or "").lower()
+    n_name = (node.get("name") or "").strip()
+    if t_key and n_name:
+        if t_key not in nodes_by_tier:
+            nodes_by_tier[t_key] = []
+        nodes_by_tier[t_key].append(n_name)
+
 if cmd in ["help", "list", "?"]:
     lines = []
-    lines.append("**Mining**")
+    lines.append("**Herbalism**")
     lines.append("")
     lines.append("**Usage**")
-    lines.append("- `!tmine` (weighted random tier)")
-    lines.append(f"- `!tmine <tier>` where tier is one of: `{tier_names}`")
-    lines.append("- `!tmine set simple|complex` to store your default mode.")
-    lines.append("- `!tmine set bonus <dice>` to keep a default `-b` bonus.")
-    lines.append("- `!tmine set guidance on|off` to toggle automatic guidance.")
-    lines.append("- Add `-c|complex` to roll a named node inside the tier.")
+    lines.append("- `!herb` (weighted random tier)")
+    lines.append(f"- `!herb <tier>` where tier is one of: `{tier_names}`")
+    lines.append("- `!herb set simple|complex` to store your default mode.")
+    lines.append("- `!herb set bonus <dice>` to keep a default `-b` bonus.")
+    lines.append("- `!herb set guidance on|off` to toggle automatic guidance.")
+    lines.append("- Add `-c|complex` to roll a specific named herb within the tier.")
     lines.append("- Add `-s|simple` to force tier-only rewards (default).")
     lines.append("- Optional: add `adv` or `dis`")
     lines.append("- Optional: add `guidance|g`")
-    lines.append("- Optional: override find skill (e.g. `!tmine surv`)")
+    lines.append("- Optional: override find skill (e.g. `!herb surv`)")
     lines.append("- Optional: add a bonus to rolls (e.g. `-b 1d4`)")
     lines.append("")
     lines.append("**Bags**")
-    lines.append(f"- Loot is stored in your `{bag_label}` bag (auto-created if missing).")
+    lines.append(f"- Herbs are stored in your `{bag_label}` bag (auto-created if missing).")
     lines.append("")
     lines.append("**Tiers**")
 
     for t, tier_data in tier_items:
         dc_val = (tier_data or {}).get("dc", "?")
-        lines.append(f"- **{t.title()}** (DC {dc_val})")
+        price = (tier_data or {}).get("price")
+        price_str = f" — {price}g/component" if price else ""
+        tier_nodes = nodes_by_tier.get(t, [])
+        node_str = ", ".join(tier_nodes) if tier_nodes else "None"
+        lines.append(f"- **{t.title().replace('_', ' ')}** (DC {dc_val}{price_str}): {node_str}")
 
-    title = "Mining List" if cmd == "list" else "Mining Help"
+    lines.append("")
+    lines.append("**Note:** Legendary herbs cannot be found in the wilderness.")
+    lines.append("They require a dungeon, mission, or quest.")
+
+    title = "Herbalism List" if cmd == "list" else "Herbalism Help"
     return gather.build_output(title, lines, [], footer=FOOTER)
 
 # -----------------------------
-# Cooldown gate
+# Cooldown gate (shared with other gathering activities)
 # -----------------------------
 gate = cd.gate_cvar("last_hunt", cooldown)
 if not gate["ok"]:
-    return gather.build_output("Mining", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
+    return gather.build_output("Herbalism", [f"Available: {cd.ts(gate['expiry'], 'R')}"], [], footer=FOOTER)
 
 # -----------------------------
 # Find skill override
@@ -204,12 +208,11 @@ resolved_cmd = gather.resolve_tier(tier_cmd, tier_aliases)
 if resolved_cmd in (tiers or {}):
     tier_data = (tiers.get(resolved_cmd) or {})
     if not tier_data.get("enabled", True):
-        return gather.build_output(
-            "Mining",
-            [f"**{resolved_cmd.title()}** mining is currently unavailable."],
-            [],
-            footer=FOOTER
-        )
+        note = (tier_data.get("note") or "")
+        msg = [f"**{resolved_cmd.title().replace('_', ' ')}** herbs are not available in the surrounding wilderness."]
+        if note:
+            msg.append(note)
+        return gather.build_output("Herbalism", msg, [], footer=FOOTER)
 
 # -----------------------------
 # Tier selection
@@ -219,7 +222,7 @@ tier = sel.get("tier") or (cfg.get("default_tier") or "common")
 tier_label = sel.get("tier_label") or tier.title()
 dc_val = int(sel.get("dc_val") or 10)
 
-# Reward item name
+# Reward item name (simple mode)
 tier_cfg = tiers.get(tier) or {}
 item_name = (tier_cfg.get("reward_item") or "").strip()
 if not item_name:
@@ -236,11 +239,11 @@ if mode_setting == MODE_COMPLEX:
         complex_active = True
         node_name = (node_entry.get("name") or node_entry.get("id") or tier_label).strip()
     else:
-        node_notice = f"No nodes configured for {tier_label}; using tier rewards."
+        node_notice = f"No specific herbs configured for {tier_label}; using generic tier rewards."
 
 mode_label = "Complex" if complex_active else "Simple"
 if not complex_active and mode_setting == MODE_COMPLEX:
-    mode_label = "Simple (no nodes)"
+    mode_label = "Simple (no herbs)"
 
 loot_name = node_name if complex_active else item_name
 display_node_name = node_name or tier_label
@@ -251,7 +254,7 @@ pass_text = format_text((node_entry.get("pass") if complex_active else pass_temp
 fail_text = format_text((node_entry.get("fail") if complex_active else fail_template), tier, tier_label, display_node_name)
 
 # -----------------------------
-# Find check 
+# Find check
 # -----------------------------
 find = gather.roll_check(
     ch,
@@ -264,14 +267,14 @@ find = gather.roll_check(
 )
 
 if not find.get("ok"):
-    title = f"Mining Report - {tier_label} (DC {dc_val})"
+    title = f"Herbalism Report - {tier_label} (DC {dc_val})"
     search_result = find.get("error") or str(find.get("roll"))
     desc = [
-        "You scour the rock face but nothing workable turns up."
+        "You search the area carefully but find no harvestable herbs."
     ]
 
     if mode_setting == MODE_COMPLEX and not complex_active:
-        desc.append("Node: None (no veins located).")
+        desc.append("No specific herb located.")
 
     desc.extend([
         "",
@@ -279,16 +282,16 @@ if not find.get("ok"):
         f"  {search_result}",
         "",
         "**Harvesting** (Not Attempted):",
-        "  No vein was located to work.",
+        "  No herb was located to harvest.",
         "",
         "**Resources Gained**:",
-        "  No usable material recovered."
+        "  No herbs recovered."
     ])
 
     return gather.build_output(title, desc, [], footer=FOOTER)
 
 # -----------------------------
-# Extraction
+# Harvest check
 # -----------------------------
 ex = gather.roll_extraction_best(
     ch,
@@ -302,7 +305,7 @@ ex = gather.roll_extraction_best(
     prefer_tools_on_tie=True
 )
 
-extract_name = ex.get("name") or "Extraction"
+extract_name = ex.get("name") or "Harvesting"
 extract_check = ex.get("roll")
 extracted = bool(extract_check and (extract_check.total >= dc_val))
 
@@ -318,34 +321,28 @@ reward = gather.calc_reward_points(
 )
 
 points = reward.get("points", 0)
-point_str = "\n".join(reward.get("lines") or [])
 
 bag_field = ""
 if extracted and points > 0:
     bag_result = gather.add_rewards_to_bag(
         ch,
-        activity="mining",
+        activity="herbalism",
         bag_label=bag_label,
         bag_cvar=bag_cvar,
         rewards={loot_name: points}
     )
     if not bag_result.get("ok") and bag_result.get("bag_name"):
-        # bag_field = f"{bag_result['bag_name']}: +{points} {loot_name}"
-    # else:
         bag_field = bag_result.get("error") or "Unable to record loot."
 
 # -----------------------------
 # Output
 # -----------------------------
-title = f"Mining Report - {tier_label} {loot_name if complex_active else ''} (DC {dc_val})"
+title = f"Herbalism Report - {tier_label} {loot_name if complex_active else ''} (DC {dc_val})"
 desc_lines = [
     found_text,
-    pass_text if extracted else fail_text    
+    pass_text if extracted else fail_text
 ]
-# f"{tier_label} {loot_name if complex_active else ''} (DC {dc_val})",
 
-# if complex_active:
-#     desc_lines.append(f"Node: {display_node_name}")
 if node_notice:
     desc_lines.append(node_notice)
 
@@ -357,7 +354,7 @@ desc_lines.extend([
     f"**Searching** ({find_skill.title()}):",
     f"  {find_roll}",
     "",
-    f"**Working the Vein** \n({extract_name}):",
+    f"**Harvesting the Plant** \n({extract_name}):",
     f"  {extract_roll}"
 ])
 
@@ -371,18 +368,13 @@ if extracted:
     for line in (reward.get("lines") or []):
         desc_lines.append(f"  {line}")
 else:
-    desc_lines.append("  No usable material recovered.")
+    desc_lines.append("  No herbs recovered.")
 
 if bag_field:
     desc_lines.extend([
         "",
         bag_field
     ])
-
-# desc_lines.extend([
-#     "",
-#     f"Mode: {mode_label}"
-# ])
 
 return gather.build_output(title, desc_lines, [], footer=FOOTER)
 </drac2>

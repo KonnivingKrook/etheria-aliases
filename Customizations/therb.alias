@@ -17,7 +17,8 @@ tier_aliases = data.get("tier_aliases") or {}
 # -----------------------------
 # Defaults / Config
 # -----------------------------
-cooldown = int(cfg.get("cooldown", 7200))
+# cooldown = int(cfg.get("cooldown", 7200))
+cooldown = int(3)
 tool_options = cfg.get("tool_names") or ["herbalism kit"]
 tool_type = typeof(tool_options)
 if tool_type == "str":
@@ -124,6 +125,15 @@ if tiers:
 else:
     tier_names = "none"
 
+nodes_by_tier = {}
+for node in (data.get("nodes") or []):
+    t_key = (node.get("tier") or "").lower()
+    n_name = (node.get("name") or "").strip()
+    if t_key and n_name:
+        if t_key not in nodes_by_tier:
+            nodes_by_tier[t_key] = []
+        nodes_by_tier[t_key].append(n_name)
+
 if cmd in ["help", "list", "?"]:
     lines = []
     lines.append("**Herbalism**")
@@ -150,7 +160,9 @@ if cmd in ["help", "list", "?"]:
         dc_val = (tier_data or {}).get("dc", "?")
         price = (tier_data or {}).get("price")
         price_str = f" — {price}g/component" if price else ""
-        lines.append(f"- **{t.title().replace('_', ' ')}** (DC {dc_val}{price_str})")
+        tier_nodes = nodes_by_tier.get(t, [])
+        node_str = ", ".join(tier_nodes) if tier_nodes else "None"
+        lines.append(f"- **{t.title().replace('_', ' ')}** (DC {dc_val}{price_str}): {node_str}")
 
     lines.append("")
     lines.append("**Note:** Legendary herbs cannot be found in the wilderness.")

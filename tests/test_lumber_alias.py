@@ -1,5 +1,5 @@
 """
-Smoke tests for the lumber alias (Customizations/tlumber.alias).
+Smoke tests for the lumber alias (Etheria_Collection/lumber.alias).
 
 End-to-end tests using mocked character data and controlled dice rolls.
 Shared fixtures (fresh_ch, cooled_down_ch) come from conftest.
@@ -10,7 +10,7 @@ Lumber has no complex mode or disabled tiers, so those classes are absent.
 import pytest
 from conftest import GATHER_NOW, set_mock_time, reset_mock_time, run_alias
 
-LUMBER_ALIAS = "Customizations/tlumber.alias"
+LUMBER_ALIAS = "Etheria_Collection/lumber.alias"
 
 
 @pytest.fixture(autouse=True)
