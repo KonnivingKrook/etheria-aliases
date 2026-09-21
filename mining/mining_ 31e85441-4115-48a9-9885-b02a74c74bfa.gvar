@@ -165,16 +165,6 @@
       "found": "A pale shimmer reveals **Platinum** beneath the rubble.",
       "pass": "You chisel out the platinum vein intact.",
       "fail": "The platinum slides deeper into the strata before you can reach it."
-    },
-    {
-      "id": "mizzium",
-      "name": "Mizzium",
-      "tier": "very_rare",
-      "rarity": 2,
-      "category": "ore",
-      "found": "Volatile sparks dance across a jagged vein of **Mizzium**.",
-      "pass": "You stabilize the magical ore long enough to harvest it.",
-      "fail": "The mizzium destabilizes and the vein vaporizes."
     }
   ]
 }
