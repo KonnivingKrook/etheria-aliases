@@ -1,0 +1,27 @@
+{
+  "profiles": {
+    "default": {
+      "vars": {
+        "gvars": {
+          "31e85441-4115-48a9-9885-b02a74c74bfa": {
+            "filePath": "mining\\mining_31e85441-4115-48a9-9885-b02a74c74bfa.gvar"
+          },
+          "db1be665-d0e6-42b0-8ce8-a3439c0a3fc7": {
+            "filePath": "lumber\\lumber_db1be665-d0e6-42b0-8ce8-a3439c0a3fc7.gvar"
+          },
+          "9c693132-e360-499f-bea2-815397f7f53a": {
+            "filePath": "herbalism\\herbalism_9c693132-e360-499f-bea2-815397f7f53a.gvar"
+          },
+          "d514b864-a857-4271-b82c-6e3009161cff": {
+            "filePath": "misc\\gvars\\build-projects_d514b864-a857-4271-b82c-6e3009161cff.gvar"
+          }
+        }
+      },
+      "combat": {
+        "metadata": {
+          "construction": "{\"name\": \"Tavern\", \"materials\": {\"adamantine\": {\"name\": \"Adamantine\", \"rarity\": \"Very Rare\", \"quota\": 100, \"supply\": 8, \"dc\": 24, \"checks\": 50, \"success\": 0, \"logs\": [{\"ch\": \"Aelar Wyn\", \"action\": \"Added\", \"quantity\": 8, \"note\": \"On loan!\"}]}, \"common_wood\": {\"name\": \"Common Wood\", \"rarity\": \"Common\", \"quota\": 100, \"supply\": 20, \"dc\": 13, \"checks\": 50, \"success\": 3, \"logs\": [{\"ch\": \"Aelar Wyn\", \"action\": \"Added\", \"quantity\": 20, \"note\": null}]}}, \"mat_log\": [], \"build_log\": [{\"ch\": \"Aelar Wyn\", \"action\": \"Added\", \"quantity\": 8, \"note\": \"On loan!\"}]}"
+        }
+      }
+    }
+  }
+}
