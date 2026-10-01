@@ -1,0 +1,651 @@
+embed
+<drac2>
+# Shardspire Build Tracker
+resource_table = load_json(get_gvar("31e85441-4115-48a9-9885-b02a74c74bfa"))
+PROJECTS_GVAR = "d514b864-a857-4271-b82c-6e3009161cff"
+
+ch = character()
+LOG_LIMIT = 10
+FOOTER = "Shardspire Build Tracker - !build ? for help | @konnivingkrook#0"
+# Mutated (not reassigned) inside functions to flag that this run restored from the backup
+STATE = {"restored": False}
+
+HELP = """`!build start <name> [-image <url>]` - start a project in this channel (add `-confirm` to replace an existing one)
+`!build image <url>` - set the project's image (`clear` to remove it)
+`!build req <quota> <material>` - add or update a material requirement
+`!build rm <material>` - remove a material requirement
+`!build add <quantity> <material> [-n note]` - contribute materials (negative to correct a mistake)
+`!build work <checks> <material> [method] [-n note]` - log successful checks or spells (negative to correct a mistake)
+`!build list [log]` - show progress (add `log` for recent activity)
+`!build projects` - list every open project across the server
+
+**Examples**
+`!build req 100 Adamantine` / `!build req 100 Common Wood`
+`!build add 10 Adamantine -n On loan!`
+`!build work 2 Common Stone Wall of Stone`
+
+Material names can be shortened, e.g. `!build add 5 ada` for Adamantine or `!build work 1 wood` for Common Wood."""
+
+
+################
+# Embed output
+################
+def clean(text):
+    # Double quotes would end an embed argument early, and | splits field name/value
+    return str(text).replace('"', "'").replace("|", "/")
+
+def render(title, desc="", fields=None, image=None):
+    if STATE["restored"]:
+        desc = "*This project was restored from the backup because this channel's initiative was reset.*\n\n" + (desc or "")
+    out = [f'-title "{clean(title)}"']
+    if desc:
+        out.append(f'-desc "{clean(desc)}"')
+    for name, value in (fields or []):
+        out.append(f'-f "{clean(name)}|{clean(value)}"')
+    color = get("color")
+    if color:
+        out.append(f"-color {color}")
+    if image:
+        out.append(f'-thumb "{image}"')
+    out.append(f'-footer "{clean(FOOTER)}"')
+    return " ".join(out)
+
+def check_image_url(url):
+    if not (url.startswith("http://") or url.startswith("https://")):
+        err(f"`{url}` doesn't look like an image link. It should start with `http://` or `https://`.")
+    # A double quote would end the -thumb argument early
+    return url.replace('"', "%22")
+
+def bar(done, total, width=10):
+    if total <= 0:
+        return ""
+    filled = min(width, floor(done * width / total))
+    return "█" * filled + "░" * (width - filled)
+
+def progress_lines(mat):
+    return (
+        f"Supply: {bar(mat['supply'], mat['quota'])} {mat['supply']}/{mat['quota']}\n"
+        f"Checks: {bar(mat['success'], mat['checks'])} {mat['success']}/{mat['checks']}"
+    )
+
+def project_totals(project):
+    mats = [m for m in (project.get("materials") or {}).values()]
+    all_supplied = len(mats) > 0 and all([m["supply"] >= m["quota"] for m in mats])
+    all_checked = len(mats) > 0 and all([m["success"] >= m["checks"] for m in mats])
+    return all_supplied, all_checked
+
+def completion_message(project, mat, kind):
+    # Only called right after progress was made, so a finished state here means it just finished
+    all_supplied, all_checked = project_totals(project)
+    lines = []
+    if kind == "supply" and mat["supply"] >= mat["quota"]:
+        lines.append(f"**{mat['name']}** is fully supplied!")
+        if all_supplied and not all_checked:
+            lines.append(f"**All materials for {project['name']} have been gathered!**")
+    if kind == "checks" and mat["success"] >= mat["checks"]:
+        lines.append(f"All checks for **{mat['name']}** are done!")
+        if all_checked and not all_supplied:
+            lines.append(f"**All construction checks for {project['name']} are done!**")
+    project_done = all_supplied and all_checked and len(lines) > 0
+    if project_done:
+        lines.append(f"**{project['name']} is complete!** Every material is supplied and every check is done.")
+    return "\n".join(lines), project_done
+
+
+################
+# Storage
+################
+# Live progress lives in this channel's initiative metadata so anyone can contribute.
+# Every save is also mirrored to a shared backup gvar, which only its editors (the DMs)
+# can write. For everyone else the backup write fails and is skipped on purpose.
+def is_project(value):
+    return typeof(value) in ("SafeDict", "dict") and bool(value.get("name"))
+
+def is_complete(project):
+    all_supplied, all_checked = project_totals(project)
+    return all_supplied and all_checked
+
+def channel_key():
+    return str(ctx.channel.id)
+
+def load_registry():
+    raw = get_gvar(PROJECTS_GVAR)
+    registry = load_json(raw) if raw else {}
+    if typeof(registry) not in ("SafeDict", "dict"):
+        registry = {}
+    projects = registry.get("projects")
+    if typeof(projects) not in ("SafeDict", "dict"):
+        projects = {}
+    registry["projects"] = projects
+    return registry
+
+def backup_project(project):
+    registry = load_registry()
+    kept = {}
+    # Auto-cleanup: drop finished projects from the backup, including this one if it just finished
+    for key, entry in registry["projects"].items():
+        if key != channel_key() and not is_complete(entry.get("project") or {}):
+            kept[key] = entry
+    if not is_complete(project):
+        kept[channel_key()] = {"channel": ctx.channel.name, "saved": time(), "project": project}
+    registry["projects"] = kept
+    registry["version"] = registry.get("version") or 1
+    try:
+        set_gvar(PROJECTS_GVAR, dump_json(registry))
+    except:
+        pass
+
+def save_project(data):
+    combat().set_metadata("construction", dump_json(data))
+    backup_project(data)
+
+def backed_up_project():
+    entry = load_registry()["projects"].get(channel_key())
+    if entry and is_project(entry.get("project")):
+        return entry["project"]
+    return None
+
+def load_project():
+    c = combat()
+    if not c:
+        backup = backed_up_project()
+        if backup:
+            err(f"This channel has no active initiative. **{backup['name']}** is backed up, so start initiative with `!init begin` and it will be restored automatically.")
+        err("This channel has no active initiative, so there's nowhere to keep the project. Start one with `!init begin`.")
+    project = c.get_metadata("construction")
+    if typeof(project) == "str":
+        project = load_json(project)
+    if is_project(project):
+        return project
+    # Initiative was reset: bring the project back from the backup if there is one
+    backup = backed_up_project()
+    if backup:
+        c.set_metadata("construction", dump_json(backup))
+        STATE["restored"] = True
+        return backup
+    return None
+
+def get_project():
+    project = load_project()
+    if not project:
+        err("No active project. Start one with `!build start <name>`.")
+    return project
+
+# Write nested changes back explicitly instead of relying on shared references,
+# so updates survive even if nested dicts come back as copies.
+def put_material(project, key, mat):
+    mats = project["materials"]
+    mats[key] = mat
+    project["materials"] = mats
+
+def drop_material(project, key):
+    mats = project["materials"]
+    mats.pop(key)
+    project["materials"] = mats
+
+
+################
+# Parsing helpers
+################
+def find_best_match(candidates, text):
+    # Whole-word match so "Gemstone" doesn't match "Stone"; longest match wins
+    padded = f" {text.lower()} "
+    best = None
+    for candidate in candidates:
+        if f" {candidate.lower()} " in padded:
+            if best is None or len(candidate) > len(best):
+                best = candidate
+    return best
+
+def resolve_name(candidates, text):
+    # Returns (candidate, matched text), or (None, None) when nothing fits; errors if ambiguous.
+    # Tries the full name, then a whole word ("wood" -> "Common Wood"), then a word start ("ada" -> "Adamantine").
+    best = find_best_match(candidates, text)
+    if best is not None:
+        return best, best
+    for word in text.split():
+        w = word.lower()
+        hits = [c for c in candidates if w in c.lower().split()]
+        if not hits and len(w) >= 3:
+            hits = [c for c in candidates if any([part.startswith(w) for part in c.lower().split()])]
+        if len(hits) == 1:
+            return hits[0], word
+        if len(hits) > 1:
+            err(f"`{word}` matches more than one: {', '.join(hits)}. Please be more specific.")
+    return None, None
+
+def edit_distance(a, b):
+    prev = range(len(b) + 1)
+    for i in range(1, len(a) + 1):
+        cur = [i]
+        for j in range(1, len(b) + 1):
+            cost = 0 if a[i - 1] == b[j - 1] else 1
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost))
+        prev = cur
+    return prev[len(b)]
+
+def suggest_name(candidates, text):
+    # Closest candidate to a likely typo, e.g. "adamantium" -> "Adamantine". Kept cheap because
+    # Avrae caps total loop iterations per run: few typed words, and only similar-length words.
+    best = None
+    best_dist = 99
+    for word in text.split()[:3]:
+        w = word.lower()
+        if len(w) < 3:
+            continue
+        for c in candidates:
+            for part in c.lower().split():
+                if abs(len(part) - len(w)) > 3:
+                    continue
+                d = edit_distance(w, part)
+                if d < best_dist and d <= max(1, len(part) // 3):
+                    best = c
+                    best_dist = d
+    return best
+
+def remove_phrase(text, phrase):
+    # Whole-word removal so "wood" doesn't cut into "Woodcarver's"
+    padded = f" {text} "
+    idx = padded.lower().find(f" {phrase.lower()} ")
+    if idx < 0:
+        return " ".join(text.split())
+    return " ".join((padded[:idx] + padded[idx + len(phrase) + 1:]).split())
+
+def build_key(name):
+    return name.strip().lower().replace(" ", "_")
+
+def split_note(args):
+    if "-n" in args:
+        i = args.index("-n")
+        note = " ".join(args[i + 1:]).strip()
+        return args[:i], note or None
+    return args, None
+
+def extract_quantity(args):
+    for i, arg in enumerate(args):
+        try:
+            quantity = int(arg)
+        except ("ValueError", "TypeError"):
+            continue
+        rest = [a for j, a in enumerate(args) if j != i]
+        return quantity, rest
+    return None, args
+
+def require_quantity(quantity, usage):
+    if quantity is None:
+        err(f"Please include a number. ie: {usage}")
+    if quantity <= 0:
+        err("The number must be greater than 0.")
+
+def match_project_material(project, text, usage):
+    if not text:
+        err(f"Please include a material. ie: {usage}")
+    names = {}
+    for key, mat in project["materials"].items():
+        names[mat["name"]] = key
+    name, matched = resolve_name(names.keys(), text)
+    if name is not None:
+        return names[name], name, matched
+
+    known = ", ".join(names.keys()) or "none yet"
+    guess = suggest_name(names.keys(), text)
+    hint = f" Did you mean **{guess}**?" if guess else ""
+    err(f"No material in this project matches `{text}`.{hint} Current materials: {known}")
+
+
+################
+# Data builders
+################
+def build_material(name, rarity, quota, dc):
+    return {
+        "name": name,
+        "rarity": rarity,
+        "quota": quota,
+        "supply": 0,
+        "dc": dc,
+        "checks": ceil(quota / 2),
+        "success": 0,
+        "logs": []
+    }
+
+def build_log(name, action, quantity, note):
+    return {
+        "ch": name,
+        "action": action,
+        "quantity": quantity,
+        "note": note
+    }
+
+def append_log(mat, entry):
+    logs = mat.get("logs") or []
+    logs.append(entry)
+    mat["logs"] = logs[-LOG_LIMIT:]
+
+
+################
+# Commands
+################
+def start(args):
+    confirm = "-confirm" in args
+    args = [a for a in args if a != "-confirm"]
+    image = None
+    if "-image" in args:
+        i = args.index("-image")
+        if i + 1 >= len(args):
+            err("Please put the image link after `-image`. ie: `!build start Tavern -image https://...`")
+        image = check_image_url(args[i + 1])
+        args = args[:i] + args[i + 2:]
+    name = " ".join(args).strip()
+    if not name:
+        err("Please name the project. ie: `!build start Tavern`")
+
+    existing = load_project()
+    if existing and not confirm:
+        retry = f"!build start {name}" + (f" -image {image}" if image else "") + " -confirm"
+        err(f"This channel already has a project: **{existing['name']}**. Run `{retry}` to replace it. Its progress will be lost.")
+
+    project = {"name": name, "materials": {}}
+    if image:
+        project["image"] = image
+    save_project(project)
+    STATE["restored"] = False
+    return render(
+        f"{ch.name} breaks ground on a new project!",
+        f"**{name}**\n\nAdd requirements with `!build req 100 Adamantine` or `!build req 100 Common Wood`.",
+        image=image
+    )
+
+def set_image(args):
+    project = get_project()
+    url = " ".join(args).strip()
+    if not url:
+        current = project.get("image")
+        err(f"Please include an image link, or `clear` to remove it. ie: `!build image https://...`" + (f"\nCurrent image: {current}" if current else ""))
+    if url.lower() in ("clear", "none", "remove", "off"):
+        project.pop("image", None)
+        save_project(project)
+        return render(f"{project['name']}: Image Removed", "This project no longer has an image.")
+    image = check_image_url(url)
+    project["image"] = image
+    save_project(project)
+    return render(f"{project['name']}: Image Updated", "This image will show on the project's embeds.", image=image)
+
+def requirements(args):
+    usage = "`!build req 100 Adamantine` or `!build req 100 Common Wood`"
+    quota, args = extract_quantity(args)
+    require_quantity(quota, usage)
+    text = " ".join(args).strip()
+    if not text:
+        err(f"Please include a material. ie: {usage}")
+
+    tiers = resource_table["tiers"]
+    label_to_tier = {}
+    for t in tiers.values():
+        label_to_tier[t["label"]] = t
+    rarity = find_best_match(label_to_tier.keys(), text)
+
+    if rarity:
+        # Generic material with an explicit rarity, e.g. "Common Wood" or "Very Rare Gemstone"
+        noun = remove_phrase(text, rarity)
+        if not noun:
+            err(f"Please include what the material is, not just its rarity. ie: `!build req 100 {rarity} Wood`")
+        tier = label_to_tier[rarity]
+        material = f"{rarity} {noun.title()}"
+    else:
+        # Named material with a fixed tier, e.g. "Adamantine"
+        node_names = [n["name"] for n in resource_table["nodes"]]
+        named, matched = resolve_name(node_names, text)
+        if not named:
+            labels = ", ".join(label_to_tier.keys())
+            guess = suggest_name(node_names + [l for l in label_to_tier.keys()], text)
+            hint = f" Did you mean **{guess}**?" if guess else ""
+            err(f"`{text}` isn't a known material.{hint} For a custom material, include a rarity ({labels}). ie: `!build req 100 Common Wood`")
+        node = [n for n in resource_table["nodes"] if n["name"] == named][0]
+        tier = tiers[node["tier"]]
+        rarity = tier["label"]
+        material = named
+
+    dc = tier["dc"]
+    project = get_project()
+    key = build_key(material)
+    existing = project["materials"].get(key)
+
+    if existing:
+        existing["quota"] = quota
+        existing["checks"] = ceil(quota / 2)
+        put_material(project, key, existing)
+        save_project(project)
+        return render(
+            f"{project['name']}: Requirement Updated",
+            f"**{material}** ({existing['rarity']}, DC {existing['dc']})\n{progress_lines(existing)}",
+            image=project.get("image")
+        )
+
+    new_mat = build_material(material, rarity, quota, dc)
+    put_material(project, key, new_mat)
+    save_project(project)
+    return render(
+        f"{project['name']}: Requirement Added",
+        f"**{material}** ({rarity}, DC {dc})\n{progress_lines(new_mat)}",
+        image=project.get("image")
+    )
+
+def remove(args):
+    usage = "`!build rm Adamantine`"
+    project = get_project()
+    key, name, matched = match_project_material(project, " ".join(args).strip(), usage)
+    drop_material(project, key)
+    save_project(project)
+    return render(f"{project['name']}: Requirement Removed", f"**{name}** is no longer part of this project.", image=project.get("image"))
+
+def add_materials(args):
+    usage = "`!build add 10 Adamantine -n On loan!` (use a negative number to correct a mistake)"
+    args, note = split_note(args)
+    quantity, args = extract_quantity(args)
+    if quantity is None:
+        err(f"Please include a number. ie: {usage}")
+    if quantity == 0:
+        err("The number can't be 0.")
+    project = get_project()
+    key, name, matched = match_project_material(project, " ".join(args).strip(), usage)
+    mat = project["materials"][key]
+
+    if quantity < 0:
+        amount = -quantity
+        if amount > mat["supply"]:
+            err(f"Can't remove {amount} {name}; only {mat['supply']} have been supplied.")
+        mat["supply"] -= amount
+        append_log(mat, build_log(ch.name, "Removed", amount, note))
+        put_material(project, key, mat)
+        save_project(project)
+        desc = f"{ch.name} removed **{amount} {name}**."
+        if note:
+            desc += f"\n> {note}"
+        return render(f"{project['name']}: Supply Corrected", f"{desc}\n\n{progress_lines(mat)}", image=project.get("image"))
+
+    remaining = mat["quota"] - mat["supply"]
+    if remaining <= 0:
+        return render(f"{project['name']}: Already Supplied", f"**{name}** is already fully supplied. Nothing was added.\n\n{progress_lines(mat)}", image=project.get("image"))
+
+    accepted = min(quantity, remaining)
+    mat["supply"] += accepted
+    append_log(mat, build_log(ch.name, "Added", accepted, note))
+    put_material(project, key, mat)
+    save_project(project)
+
+    desc = f"{ch.name} added **{accepted} {name}**."
+    if note:
+        desc += f"\n> {note}"
+    if accepted < quantity:
+        desc += f"\nOnly {accepted} were needed. Please take back the extra **{quantity - accepted}**."
+    done_text, project_done = completion_message(project, mat, "supply")
+    if done_text:
+        desc += f"\n\n{done_text}"
+    title = f"{project['name']}: Project Complete!" if project_done else f"{project['name']}: Materials Added"
+    return render(title, f"{desc}\n\n{progress_lines(mat)}", image=project.get("image"))
+
+def work(args):
+    usage = "`!build work 1 Adamantine` or `!build work 2 Common Stone Wall of Stone` (use a negative number to correct a mistake)"
+    args, note = split_note(args)
+    checks, args = extract_quantity(args)
+    if checks is None:
+        err(f"Please include a number. ie: {usage}")
+    if checks == 0:
+        err("The number can't be 0.")
+    project = get_project()
+    text = " ".join(args).strip()
+    key, name, matched = match_project_material(project, text, usage)
+    mat = project["materials"][key]
+
+    method = remove_phrase(text, matched) or None
+    detail = " - ".join([d for d in (method, note) if d]) or None
+
+    if checks < 0:
+        amount = -checks
+        if amount > mat["success"]:
+            err(f"Can't remove {amount} check(s) from {name}; only {mat['success']} have been logged.")
+        mat["success"] -= amount
+        append_log(mat, build_log(ch.name, "Unworked", amount, detail))
+        put_material(project, key, mat)
+        save_project(project)
+        desc = f"{ch.name} removed **{amount} check(s)** from **{name}**."
+        if detail:
+            desc += f"\n> {detail}"
+        return render(f"{project['name']}: Checks Corrected", f"{desc}\n\n{progress_lines(mat)}", image=project.get("image"))
+
+    remaining = mat["checks"] - mat["success"]
+    if remaining <= 0:
+        return render(f"{project['name']}: Checks Complete", f"All checks for **{name}** are already done. Nothing was logged.\n\n{progress_lines(mat)}", image=project.get("image"))
+
+    accepted = min(checks, remaining)
+    mat["success"] += accepted
+    append_log(mat, build_log(ch.name, "Worked", accepted, detail))
+    put_material(project, key, mat)
+    save_project(project)
+
+    desc = f"{ch.name} logged **{accepted} successful check(s)** on **{name}**"
+    desc += f" using {method}." if method else "."
+    if note:
+        desc += f"\n> {note}"
+    if accepted < checks:
+        desc += f"\nOnly {accepted} were needed."
+    done_text, project_done = completion_message(project, mat, "checks")
+    if done_text:
+        desc += f"\n\n{done_text}"
+    title = f"{project['name']}: Project Complete!" if project_done else f"{project['name']}: Work Logged"
+    return render(title, f"{desc}\n\n{progress_lines(mat)}", image=project.get("image"))
+
+def list_materials(args):
+    project = load_project()
+    if not project:
+        return render(
+            "No project in this channel yet",
+            f"Start one with `!build start <name>`, e.g. `!build start Tavern`.\n\n{HELP}"
+        )
+    title = f"Project: {project['name']}"
+    materials = project.get("materials") or {}
+    if not materials:
+        return render(title, "No materials added yet. Add one with `!build req 100 Adamantine`.", image=project.get("image"))
+
+    show_log = argparse(args).get("log")
+    fields = []
+    logs = []
+    total_supply = 0
+    total_quota = 0
+    total_success = 0
+    total_checks = 0
+    for key, mat in materials.items():
+        total_supply += mat["supply"]
+        total_quota += mat["quota"]
+        total_success += mat["success"]
+        total_checks += mat["checks"]
+        finished = mat["supply"] >= mat["quota"] and mat["success"] >= mat["checks"]
+        label = f"{mat['name']} ({mat['rarity']}, DC {mat['dc']})" + (" - Complete" if finished else "")
+        fields.append((label, progress_lines(mat)))
+        if show_log:
+            for log in mat.get("logs") or []:
+                if log.get("action") == "Worked":
+                    line = f"- {log['ch']} logged {log['quantity']} check(s) on {mat['name']}"
+                elif log.get("action") == "Unworked":
+                    line = f"- {log['ch']} removed {log['quantity']} check(s) from {mat['name']}"
+                elif log.get("action") == "Removed":
+                    line = f"- {log['ch']} removed {log['quantity']} {mat['name']}"
+                else:
+                    line = f"- {log['ch']} added {log['quantity']} {mat['name']}"
+                if log.get("note"):
+                    line += f" ({log['note']})"
+                logs.append(line)
+
+    desc = (
+        f"**Overall**\n"
+        f"Supply: {bar(total_supply, total_quota)} {total_supply}/{total_quota}\n"
+        f"Checks: {bar(total_success, total_checks)} {total_success}/{total_checks}"
+    )
+    all_supplied, all_checked = project_totals(project)
+    if all_supplied and all_checked:
+        desc = f"**This project is complete!**\n\n{desc}"
+    elif all_supplied:
+        desc = f"**All materials gathered!** Checks remain.\n\n{desc}"
+    elif all_checked:
+        desc = f"**All checks done!** Materials remain.\n\n{desc}"
+    if show_log:
+        # Embed fields cap at 1024 characters; keep the newest lines that fit
+        text = ""
+        for i in range(len(logs) - 1, -1, -1):
+            line = logs[i]
+            if len(text) + len(line) + 1 > 1000:
+                break
+            text = line + "\n" + text
+        fields.append(("Recent activity", text.strip() or "Nothing logged yet."))
+    return render(title, desc, fields, image=project.get("image"))
+
+def list_projects(args):
+    entries = load_registry()["projects"]
+    if not entries:
+        return render("Open Projects", "No projects are backed up yet. Projects are backed up whenever a DM runs a `!build` command in their channel.")
+    lines = []
+    for key, entry in entries.items():
+        project = entry.get("project") or {}
+        mats = [m for m in (project.get("materials") or {}).values()]
+        supply = sum([m["supply"] for m in mats])
+        quota = sum([m["quota"] for m in mats])
+        success = sum([m["success"] for m in mats])
+        checks = sum([m["checks"] for m in mats])
+        line = f"**{project.get('name', 'Unnamed')}** in <#{key}>\nSupply {supply}/{quota}, checks {success}/{checks}"
+        if entry.get("saved"):
+            line += f", backed up <t:{int(entry['saved'])}:R>"
+        lines.append(line)
+    return render(
+        "Open Projects",
+        "\n\n".join(lines) + "\n\n*Totals are from the last backup; a channel's own `!build list` is always current.*"
+    )
+
+
+################
+# Dispatch
+################
+all_args = &ARGS&
+sub = all_args[0].lower() if all_args else ""
+rest = all_args[1:]
+
+if sub == "start":
+    return start(rest)
+elif sub == "req":
+    return requirements(rest)
+elif sub == "rm":
+    return remove(rest)
+elif sub == "add":
+    return add_materials(rest)
+elif sub == "work":
+    return work(rest)
+elif sub == "list":
+    return list_materials(rest)
+elif sub == "image":
+    return set_image(rest)
+elif sub == "projects":
+    return list_projects(rest)
+elif sub == "?" or sub == "help":
+    return render("Build Tracker", HELP)
+else:
+    return list_materials(rest)
+</drac2>
