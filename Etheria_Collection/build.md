@@ -4,7 +4,7 @@ Build Alias Documentation
 `!build req <quota> <material>` - add or update a material requirement
 `!build rm <material>` - remove a material requirement
 `!build add <quantity> <material> [-n note]` - contribute materials (negative to correct a mistake)
-`!build work <checks> <material> [method] [-n note]` - log successful checks or spells (negative to correct a mistake)
+`!build work <checks> <material> [method] [-n note]` - log successful checks or spells (negative to correct a mistake). Defaults to 1 if no checks added
 `!build list [log]` - show progress (add `log` for recent activity)
 `!build projects` - list every open project across the server
 

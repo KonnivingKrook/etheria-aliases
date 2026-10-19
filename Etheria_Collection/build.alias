@@ -15,13 +15,14 @@ HELP = """`!build start <name> [-image <url>]` - start a project in this channel
 `!build req <quota> <material>` - add or update a material requirement
 `!build rm <material>` - remove a material requirement
 `!build add <quantity> <material> [-n note]` - contribute materials (negative to correct a mistake)
-`!build work <checks> <material> [method] [-n note]` - log successful checks or spells (negative to correct a mistake)
+`!build work [checks] <material> [method] [-n note]` - log successful checks or spells (negative to correct a mistake). Defaults to 1
 `!build list [log]` - show progress (add `log` for recent activity)
 `!build projects` - list every open project across the server
 
 **Examples**
 `!build req 100 Adamantine` / `!build req 100 Common Wood`
 `!build add 10 Adamantine -n On loan!`
+`!build work Common Stone` - defaults to 1
 `!build work 2 Common Stone Wall of Stone`
 
 Material names can be shortened, e.g. `!build add 5 ada` for Adamantine or `!build work 1 wood` for Common Wood."""
@@ -489,7 +490,8 @@ def work(args):
     args, note = split_note(args)
     checks, args = extract_quantity(args)
     if checks is None:
-        err(f"Please include a number. ie: {usage}")
+        # Default checks to 1 since this is the largest use case
+        checks = 1
     if checks == 0:
         err("The number can't be 0.")
     project = get_project()
